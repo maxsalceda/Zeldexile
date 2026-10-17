@@ -1,0 +1,20 @@
+{
+    "name": "Zeldexile.Editor",
+    "rootNamespace": "Zeldexile.EditorTools",
+    "references": [
+        "Zeldexile.Runtime",
+        "Zeldexile.Domain",
+        "Unity.Postprocessing.Runtime"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

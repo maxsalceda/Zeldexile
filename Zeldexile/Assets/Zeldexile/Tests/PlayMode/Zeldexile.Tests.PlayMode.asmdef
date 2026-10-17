@@ -1,0 +1,23 @@
+{
+    "name": "Zeldexile.Tests.PlayMode",
+    "rootNamespace": "Zeldexile.Tests",
+    "references": [
+        "Zeldexile.Domain",
+        "Zeldexile.Runtime",
+        "UnityEngine.TestRunner",
+        "UnityEditor.TestRunner"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "nunit.framework.dll"
+    ],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
