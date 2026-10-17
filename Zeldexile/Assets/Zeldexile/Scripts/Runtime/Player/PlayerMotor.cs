@@ -36,6 +36,8 @@ namespace Zeldexile.Player
         /// <summary>Steering speed in the air: jumps keep the reach they had before the walk slowed down.</summary>
         [SerializeField] private float airSpeed = 4f;
         [SerializeField] private float sprintSpeed = 7f;
+        /// <summary>Crouched walk, about the pace of the hero's crouched-walk clip.</summary>
+        [SerializeField] private float crouchSpeed = 0.9f;
         [SerializeField] private float jumpHeight = 1.3f;
         [SerializeField] private float gravity = -22f;
 
@@ -90,9 +92,14 @@ namespace Zeldexile.Player
         /// <summary>Raised on touching down, with the height fallen in meters.</summary>
         public event System.Action<float> Landed;
         public event System.Action ClimbJumped;
+        /// <summary>Pulled up over a ledge at the top of a climb.</summary>
+        public event System.Action Vaulted;
         public event System.Action SwimDashed;
 
         public State Current { get; private set; } = State.Grounded;
+
+        /// <summary>Crouching (toggled on the ground): slower and lower. Sprinting, jumping or leaving the ground stands up.</summary>
+        public bool Crouching { get; private set; }
         public Vector3 Velocity => _velocity;
         public float MaxGroundSpeed => sprintSpeed;
         public bool IsGrounded => Current == State.Grounded;
@@ -201,9 +208,14 @@ namespace Zeldexile.Player
                 _airTime = 0f;
             }
 
-            var speed = walkSpeed;
+            if (Input.CrouchPressed) Crouching = !Crouching;
+            var speed = Crouching ? crouchSpeed : walkSpeed;
             if (Input.Sprint && moveDir.sqrMagnitude > 0.01f && Stamina.Drain(sprintCost * dt))
+            {
                 speed = sprintSpeed;
+                Crouching = false;
+            }
+
             speed *= SpeedFactor();
 
             var horizontal = moveDir * speed;
@@ -299,6 +311,7 @@ namespace Zeldexile.Player
 
         private void TickAirborne(Vector3 moveDir, float dt)
         {
+            Crouching = false;
             _airTime += dt;
             _velocity.y += gravity * dt;
             if (_fallTracked) _fallStartY = Mathf.Max(_fallStartY, transform.position.y);
@@ -501,6 +514,7 @@ namespace Zeldexile.Player
             Current = State.Airborne;
             _airTime = 0f;
             _regrabCooldown = 0.3f;
+            Vaulted?.Invoke();
         }
 
         private void Detach(Vector3 push)

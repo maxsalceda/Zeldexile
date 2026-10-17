@@ -90,7 +90,10 @@ namespace Zeldexile.Player
             _lastSwing = Time.time;
             Combo++;
             _pendingHit = Time.time + swingDelay;
-            Act(cls == WeaponClass.TwoHanded ? ActionKind.SlashHeavy : cls == WeaponClass.Spear ? ActionKind.Thrust : ActionKind.SlashLight);
+            // The last swing of a one-handed combo (double damage) is the captured sword kick.
+            var finisher = cls == WeaponClass.OneHanded && Combo % (weapon?.Definition.ComboHits ?? 3) == 0;
+            Act(cls == WeaponClass.TwoHanded ? ActionKind.SlashHeavy : cls == WeaponClass.Spear ? ActionKind.Thrust
+                : finisher ? ActionKind.Kick : ActionKind.SlashLight);
 
             if (Targeting != null && Targeting.Target != null)
             {

@@ -29,6 +29,17 @@ namespace Zeldexile.Characters
         public string RunClip;
         /// <summary>Captured sword combo; its strikes replace the procedural one-handed and heavy swings.</summary>
         public string SlashClip;
+        /// <summary>Captured transitions and variants of the walk: start, stop, turning, about-turn, crouched.</summary>
+        public string StartWalkClip;
+        public string StopWalkClip;
+        public string TurnLeftClip;
+        public string TurnAroundClip;
+        public string CrouchWalkClip;
+        /// <summary>Captured jumps (standing and on the move), the ledge pull-up and the combo-finishing kick.</summary>
+        public string JumpClip;
+        public string RunningJumpClip;
+        public string VaultClip;
+        public string KickClip;
 
         public Color ColorFor(string slot)
         {
@@ -80,9 +91,18 @@ namespace Zeldexile.Characters
             Model = "heroi_anime",
             // heroi_meshy: the Meshy AI export of the same hero (sword and shield are part of its mesh).
             SkinnedModel = "heroi_meshy",
-            WalkClip = "heroi_meshy_andar",
-            RunClip = "heroi_meshy_correr",
-            SlashClip = "heroi_espada_combo"
+            WalkClip = "heroi_andar",
+            RunClip = "heroi_correr",
+            SlashClip = "heroi_espada_combo",
+            StartWalkClip = "heroi_comecar_andar",
+            StopWalkClip = "heroi_parar_andar",
+            TurnLeftClip = "heroi_curva_esquerda",
+            TurnAroundClip = "heroi_meia_volta",
+            CrouchWalkClip = "heroi_agachado_andar",
+            JumpClip = "heroi_pular",
+            RunningJumpClip = "heroi_pular_correndo",
+            VaultClip = "heroi_subir_beirada",
+            KickClip = "heroi_chute"
         };
 
         /// <summary>A creature style tinted by its tier: red, blue, black or silver.</summary>
@@ -172,6 +192,15 @@ namespace Zeldexile.Characters
         public MotionClip Walk;
         public MotionClip Run;
         public MotionClip Slash;
+        public MotionClip StartWalk;
+        public MotionClip StopWalk;
+        public MotionClip TurnLeft;
+        public MotionClip TurnAround;
+        public MotionClip CrouchWalk;
+        public MotionClip Jump;
+        public MotionClip RunningJump;
+        public MotionClip Vault;
+        public MotionClip Kick;
 
         public float HipsHeight { get; internal set; }
 

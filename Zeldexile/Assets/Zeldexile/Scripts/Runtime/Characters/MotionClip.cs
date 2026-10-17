@@ -1,5 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Animations;
+using UnityEngine.Playables;
 
 namespace Zeldexile.Characters
 {
@@ -42,6 +44,97 @@ namespace Zeldexile.Characters
         /// </summary>
         public readonly List<(float start, float peak, float end)> Strikes = new List<(float, float, float)>();
 
+        /// <summary>How far the clip turns, in degrees (positive = to the right). Removed from the poses.</summary>
+        public float TurnDegrees { get; private set; }
+
+        /// <summary>Ground speed of the hips at each sample (m/s, hero size), from the clip's root motion.</summary>
+        private float[] _hipSpeed;
+
+        /// <summary>Height of the lowest foot above its lowest point in the clip, at each sample (m, hero size).</summary>
+        private float[] _feetHeight;
+
+        /// <summary>Height of the hips at each sample (m, hero size, same origin as the feet).</summary>
+        private float[] _hipsHeight;
+
+        /// <summary>
+        /// A jump clip's phases, in clip progress: when both feet leave the ground, the hips' highest point, and
+        /// when a foot touches down again. Falls back to thirds when the feet never clearly leave the ground.
+        /// </summary>
+        public (float takeoff, float apex, float landing) AirPhases()
+        {
+            var n = _feetHeight.Length;
+            int takeoff = -1, landing = -1;
+            for (var i = 0; i < n; i++)
+                if (_feetHeight[i] > 0.08f)
+                {
+                    if (takeoff < 0) takeoff = i;
+                    landing = i;
+                }
+
+            if (takeoff < 0 || landing - takeoff < 2) return (0.25f, 0.45f, 0.65f);
+            var apex = takeoff;
+            for (var i = takeoff; i <= landing; i++)
+                if (_hipsHeight[i] > _hipsHeight[apex]) apex = i;
+            return ((float)takeoff / n, (float)apex / n, (float)(landing + 1) / n);
+        }
+
+        /// <summary>
+        /// A start-to-walk clip: from its first frame to where the hips reach their steady pace (plus a step's
+        /// settle), in clip progress.
+        /// </summary>
+        public (float start, float end) StartWindow()
+        {
+            var n = _hipSpeed.Length;
+            var steady = Steady(n * 2 / 3, n);
+            var end = n - 1;
+            for (var i = 0; i < n; i++)
+                if (_hipSpeed[i] >= steady * 0.85f) { end = i; break; }
+            return (0f, Mathf.Min(1f, (float)end / n + 0.25f / Duration));
+        }
+
+        /// <summary>
+        /// A walk-to-stop clip: from the last moment at full pace to where the hips have settled, in clip progress.
+        /// </summary>
+        public (float start, float end) StopWindow()
+        {
+            var n = _hipSpeed.Length;
+            var steady = Steady(0, n / 3);
+            var begin = 0;
+            for (var i = 0; i < n; i++)
+                if (_hipSpeed[i] >= steady * 0.85f) begin = i;
+                else if (begin > 0 && i > begin + 3) break;
+            var end = n - 1;
+            for (var i = begin; i < n; i++)
+                if (_hipSpeed[i] < steady * 0.1f) { end = i; break; }
+            return (Mathf.Max(0f, (float)begin / n - 0.15f / Duration), Mathf.Min(1f, (float)end / n + 0.5f / Duration));
+        }
+
+        private float Steady(int from, int to)
+        {
+            var values = new List<float>();
+            for (var i = Mathf.Max(0, from); i < Mathf.Min(_hipSpeed.Length, to); i++) values.Add(_hipSpeed[i]);
+            if (values.Count == 0) return 0f;
+            values.Sort();
+            return values[values.Count / 2];
+        }
+
+        /// <summary>The same pose seen in a mirror: left and right swap, rotations reflect across the body's midplane.</summary>
+        public static CharacterAnimator.Pose Mirror(CharacterAnimator.Pose p)
+        {
+            Quaternion M(Quaternion q) =>
+                q.x == 0f && q.y == 0f && q.z == 0f && q.w == 0f ? q : new Quaternion(q.x, -q.y, -q.z, q.w);
+            return new CharacterAnimator.Pose
+            {
+                Hips = M(p.Hips), Torso = M(p.Torso), Head = M(p.Head), Jaw = M(p.Jaw),
+                ArmL = M(p.ArmR), ArmR = M(p.ArmL), ElbowL = M(p.ElbowR), ElbowR = M(p.ElbowL),
+                WristL = M(p.WristR), WristR = M(p.WristL), FingersL = M(p.FingersR), FingersR = M(p.FingersL),
+                LegL = M(p.LegR), LegR = M(p.LegL), KneeL = M(p.KneeR), KneeR = M(p.KneeL),
+                AnkleL = M(p.AnkleR), AnkleR = M(p.AnkleL), ToesL = M(p.ToesR), ToesR = M(p.ToesL),
+                FootFreeL = p.FootFreeR, FootFreeR = p.FootFreeL,
+                HipsOffsetY = p.HipsOffsetY, HipsOffsetZ = p.HipsOffsetZ, ShowGlider = p.ShowGlider
+            };
+        }
+
         /// <summary>The clip "Resources/Models/Skinned/Animacoes/&lt;name&gt;", sampled once; null when missing.</summary>
         public static MotionClip Load(string name)
         {
@@ -73,7 +166,17 @@ namespace Zeldexile.Characters
             go.name = "Amostra de " + clip.name;
             go.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
             foreach (var r in go.GetComponentsInChildren<Renderer>(true)) r.enabled = false;
-            foreach (var a in go.GetComponentsInChildren<Animator>(true)) a.enabled = false;
+            // AnimationClip.SampleAnimation only moves bones in the Editor; a built game needs the Playables API.
+            var animator = go.GetComponent<Animator>();
+            if (animator == null) animator = go.AddComponent<Animator>();
+            animator.enabled = true;
+            animator.applyRootMotion = false;
+            animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
+            var graph = PlayableGraph.Create("Amostra de clipe");
+            graph.SetTimeUpdateMode(DirectorUpdateMode.Manual);
+            var playable = AnimationClipPlayable.Create(graph, clip);
+            playable.SetApplyFootIK(false);
+            AnimationPlayableOutput.Create(graph, "Pose", animator).SetSourcePlayable(playable);
             var bones = SkinnedHero.CanonicalBones(go.transform);
             string[] needed = { "Hips", "Spine", "Neck", "Head", "LeftArm", "LeftForeArm", "LeftHand", "RightArm",
                 "RightForeArm", "RightHand", "LeftUpLeg", "LeftLeg", "LeftFoot", "LeftToeBase", "RightUpLeg", "RightLeg",
@@ -81,6 +184,7 @@ namespace Zeldexile.Characters
             foreach (var n in needed)
                 if (!bones.ContainsKey(n))
                 {
+                    graph.Destroy();
                     Object.Destroy(go);
                     return null;
                 }
@@ -89,7 +193,8 @@ namespace Zeldexile.Characters
             var positions = new List<Dictionary<string, Vector3>>();
             for (var i = 0; i < count; i++)
             {
-                clip.SampleAnimation(go, clip.length * i / count);
+                playable.SetTime(clip.length * i / count);
+                graph.Evaluate();
                 var frame = new Dictionary<string, Vector3>();
                 // In world units: a clip FBX without a mesh imports its scaled armature node as the root.
                 foreach (var pair in bones)
@@ -97,6 +202,7 @@ namespace Zeldexile.Characters
                 positions.Add(frame);
             }
 
+            graph.Destroy();
             Object.Destroy(go);
 
             // The clip's frame: up from the hips to the neck, right from the left thigh to the right one, averaged.
@@ -107,6 +213,9 @@ namespace Zeldexile.Characters
                 right += p["RightUpLeg"] - p["LeftUpLeg"];
             }
 
+            // The import already stands clips up (Y); a leaning gait (the crouched walk) would tilt the body-based
+            // up and stand the trunk upright. Only a clip lying far off Y falls back to the body's own up.
+            if (Vector3.Angle(up, Vector3.up) < 60f) up = Vector3.up;
             var facing = Quaternion.LookRotation(Vector3.Cross(right, up), up);
             var toRig = Quaternion.Inverse(facing);
             foreach (var p in positions)
@@ -122,7 +231,43 @@ namespace Zeldexile.Characters
                     foreach (var key in new List<string>(p.Keys))
                         p[key] = Vector3.Scale(p[key], new Vector3(1f, 1f, -1f));
 
+            // Turning clips (and Mixamo's root motion) rotate the whole body over time; the game turns the hero
+            // itself, so the trend of the heading is taken out, leaving the steps, the lean and the pelvis sway.
+            var headings = new float[count];
+            for (var i = 0; i < count; i++)
+            {
+                var r = positions[i]["RightUpLeg"] - positions[i]["LeftUpLeg"];
+                var h = Mathf.Atan2(-r.z, r.x) * Mathf.Rad2Deg;
+                headings[i] = i == 0 ? h : headings[i - 1] + Mathf.DeltaAngle(headings[i - 1], h);
+            }
+
+            float meanT = 0f, meanH = 0f;
+            for (var i = 0; i < count; i++)
+            {
+                meanT += i;
+                meanH += headings[i];
+            }
+
+            meanT /= count;
+            meanH /= count;
+            float cov = 0f, varT = 0f;
+            for (var i = 0; i < count; i++)
+            {
+                cov += (i - meanT) * (headings[i] - meanH);
+                varT += (i - meanT) * (i - meanT);
+            }
+
+            var slope = varT > 0f ? cov / varT : 0f;
+            for (var i = 0; i < count; i++)
+            {
+                var trend = Quaternion.AngleAxis(-(meanH + slope * (i - meanT)), Vector3.up);
+                var pivot = positions[i]["Hips"];
+                foreach (var key in new List<string>(positions[i].Keys))
+                    positions[i][key] = pivot + trend * (positions[i][key] - pivot);
+            }
+
             var motion = new MotionClip { Duration = clip.length, _frames = new CharacterAnimator.Pose[count] };
+            motion.TurnDegrees = slope * count;
             for (var i = 0; i < count; i++) motion._frames[i] = Rebuild(positions[i], bones.ContainsKey("HeadTop_End"));
 
             // Size: the standing height of the first frame; speed: how fast the planted foot slides back.
@@ -138,17 +283,43 @@ namespace Zeldexile.Characters
                 var b = positions[(i + 1) % count];
                 var leftDown = a["LeftToeBase"].y < a["RightToeBase"].y;
                 var foot = leftDown ? "LeftToeBase" : "RightToeBase";
-                slides.Add(-(b[foot].z - a[foot].z) * count / clip.length);
-                // Left heel strike: the left foot furthest ahead.
-                if (-a["LeftFoot"].z < lowestLeft)
+                // Relative to the hips: clips with root motion move the hips over a planted foot.
+                slides.Add(-((b[foot].z - b["Hips"].z) - (a[foot].z - a["Hips"].z)) * count / clip.length);
+                // Left heel strike: the left foot furthest ahead of the hips.
+                var ahead = a["LeftFoot"].z - a["Hips"].z;
+                if (-ahead < lowestLeft)
                 {
-                    lowestLeft = -a["LeftFoot"].z;
+                    lowestLeft = -ahead;
                     motion.LeftStrike = (float)i / count;
                 }
             }
 
             slides.Sort();
             motion.Speed = Mathf.Abs(slides[slides.Count / 2]) * scale;
+            motion._hipSpeed = new float[count];
+            for (var i = 1; i < count; i++)
+            {
+                var d = positions[i]["Hips"] - positions[i - 1]["Hips"];
+                d.y = 0f;
+                motion._hipSpeed[i] = d.magnitude * count / clip.length * scale;
+            }
+
+            motion._hipSpeed[0] = motion._hipSpeed[Mathf.Min(1, count - 1)];
+            motion._feetHeight = new float[count];
+            motion._hipsHeight = new float[count];
+            var lowestFoot = float.MaxValue;
+            for (var i = 0; i < count; i++)
+            {
+                var p = positions[i];
+                motion._feetHeight[i] = Mathf.Min(Mathf.Min(p["LeftToeBase"].y, p["RightToeBase"].y), Mathf.Min(p["LeftFoot"].y, p["RightFoot"].y));
+                lowestFoot = Mathf.Min(lowestFoot, motion._feetHeight[i]);
+            }
+
+            for (var i = 0; i < count; i++)
+            {
+                motion._feetHeight[i] = (motion._feetHeight[i] - lowestFoot) * scale;
+                motion._hipsHeight[i] = (positions[i]["Hips"].y - lowestFoot) * scale;
+            }
             FindStrikes(motion, positions, clip.length);
             return motion;
         }

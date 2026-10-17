@@ -190,6 +190,7 @@ namespace Zeldexile.Gameplay
             interactor.Interacted += () => animator.Play(ActionKind.Pickup);
             motor.Landed += meters => { if (meters > 3f) animator.Play(ActionKind.Land); };
             motor.ClimbJumped += () => animator.Play(ActionKind.ClimbJump);
+            motor.Vaulted += () => animator.Play(ActionKind.Vault);
             motor.SwimDashed += () => animator.Play(ActionKind.SwimDash);
 
             health.Damaged += (_, amount, _) => GameFeel.AddTrauma(Mathf.Clamp(amount / 12f, 0.15f, 0.6f));
@@ -210,6 +211,7 @@ namespace Zeldexile.Gameplay
             presenter.Animator = animator;
             presenter.Rig = visual;
             presenter.Kneeling = () => hud.Kneeling;
+            presenter.Crouching = () => motor.Crouching;
             hud.Character = _player;
             hud.Motor = motor;
             hud.Caster = caster;

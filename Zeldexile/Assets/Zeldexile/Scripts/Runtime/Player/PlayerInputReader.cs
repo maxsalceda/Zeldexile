@@ -24,6 +24,8 @@ namespace Zeldexile.Player
         public bool GuardHeld { get; private set; }
         public bool LockPressed { get; private set; }
         public bool DodgePressed { get; private set; }
+        /// <summary>Crouch toggle: left Ctrl, or the left stick pressed in.</summary>
+        public bool CrouchPressed { get; private set; }
         public bool MenuPressed { get; private set; }
         public int SkillSlotPressed { get; private set; } = -1;
         /// <summary>Camera zoom: positive = closer, negative = farther (mouse wheel notches, or right stick click held).</summary>
@@ -33,6 +35,10 @@ namespace Zeldexile.Player
         public bool GameplayBlocked { get; set; }
 
         public bool FocusHeld => BowAimHeld;
+
+        /// <summary>Build checks (BuildCapture "-zxwalk"): a stick held by script instead of the devices.</summary>
+        public static Vector2? ScriptedMove;
+        public static bool ScriptedSprint;
 
         private float _guardHeldSince = -1f;
         private bool _guardTapConsumed;
@@ -47,7 +53,7 @@ namespace Zeldexile.Player
             var look = Vector2.zero;
             var zoom = 0f;
             bool sprint = false, jump = false, attack = false, throwIt = false, interact = false, rune = false;
-            bool bowAim = false, guardDown = false, guardReleased = false, dodge = false, menu = false;
+            bool bowAim = false, guardDown = false, guardReleased = false, dodge = false, menu = false, crouch = false;
             SkillSlotPressed = -1;
 
             if (kb != null)
@@ -69,6 +75,7 @@ namespace Zeldexile.Player
                 guardDown |= kb.qKey.isPressed;
                 guardReleased |= kb.qKey.wasReleasedThisFrame;
                 dodge |= kb.leftAltKey.wasPressedThisFrame || kb.cKey.wasPressedThisFrame;
+                crouch |= kb.leftCtrlKey.wasPressedThisFrame;
             }
 
             if (mouse != null)
@@ -102,6 +109,7 @@ namespace Zeldexile.Player
                 guardDown |= pad.leftShoulder.isPressed;
                 guardReleased |= pad.leftShoulder.wasReleasedThisFrame;
                 menu |= pad.startButton.wasPressedThisFrame;
+                crouch |= pad.leftStickButton.wasPressedThisFrame;
                 if (pad.dpad.right.wasPressedThisFrame) SkillSlotPressed = 0;
                 if (pad.dpad.up.wasPressedThisFrame) SkillSlotPressed = 1;
                 if (pad.dpad.left.wasPressedThisFrame) SkillSlotPressed = 2;
@@ -134,10 +142,14 @@ namespace Zeldexile.Player
                 Look = Vector2.zero;
                 Zoom = 0f;
                 Sprint = JumpPressed = AttackPressed = ThrowPressed = InteractPressed = RunePressed = false;
-                BowAimHeld = GuardHeld = LockPressed = DodgePressed = false;
+                BowAimHeld = GuardHeld = LockPressed = DodgePressed = CrouchPressed = false;
                 SkillSlotPressed = -1;
                 return;
             }
+
+            CrouchPressed = crouch;
+            if (ScriptedMove.HasValue) move = ScriptedMove.Value;
+            sprint |= ScriptedSprint;
 
             Move = Vector2.ClampMagnitude(move, 1f);
             Look = look;

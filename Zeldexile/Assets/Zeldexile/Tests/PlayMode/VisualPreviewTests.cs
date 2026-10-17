@@ -180,7 +180,8 @@ namespace Zeldexile.Tests
         {
             const float WalkSpeed = 1.5f;
             const int frames = 8, cellW = 300, cellH = 380;
-            var rows = new[] { "walk", "run", "slash", "overhead", "heavy" };
+            const float CrouchSpeed = 0.9f, TurnRate = -70f;
+            var rows = new[] { "walk", "crouch", "turn", "run", "jump", "slash", "overhead", "heavy", "kick", "vault" };
             var sheet = new Texture2D(frames * cellW, rows.Length * cellH, TextureFormat.RGB24, false);
             var stage = new GameObject("Folha de movimento");
             stage.transform.position = new Vector3(0f, 300f, 0f);
@@ -200,17 +201,33 @@ namespace Zeldexile.Tests
             for (var row = 0; row < rows.Length; row++)
             {
                 var kind = rows[row];
-                var moving = kind == "walk" || kind == "run";
+                var moving = kind == "walk" || kind == "run" || kind == "crouch" || kind == "turn";
+                var rowSpeed = kind == "run" ? 7.5f : kind == "crouch" ? CrouchSpeed : WalkSpeed;
                 // Side view: walking toward screen right; swings seen three-quarter so the trunk twist shows.
                 var hero = Hero(stage.transform, Vector3.zero, moving ? 90f : 125f, Locomotion.Grounded,
-                    kind == "walk" ? new Vector3(0f, 0f, WalkSpeed) : kind == "run" ? new Vector3(0f, 0f, 7.5f) : Vector3.zero,
-                    ActionKind.None, 0f, moving ? "" : "armed");
+                    moving ? new Vector3(0f, 0f, rowSpeed) : Vector3.zero, ActionKind.None, 0f, moving ? "" : "armed");
                 var animator = hero.GetComponent<CharacterAnimator>();
-                if (row == 0 && animator.Rig.Slash != null)
-                    foreach (var (start, peak, end) in animator.Rig.Slash.Strikes)
-                        Debug.Log($"Golpe capturado: {start:F2} - {peak:F2} - {end:F2} de {animator.Rig.Slash.Duration:F2} s");
-                // FixedSource velocity is world space; the walk reads its length only.
-                for (var i = 0; i < 60; i++) yield return null;
+                animator.Crouching = kind == "crouch";
+                if (row == 0)
+                {
+                    var r = animator.Rig;
+                    if (r.Slash != null)
+                        foreach (var (start, peak, end) in r.Slash.Strikes)
+                            Debug.Log($"Golpe capturado: {start:F2} - {peak:F2} - {end:F2} de {r.Slash.Duration:F2} s");
+                    if (r.StartWalk != null) Debug.Log($"Começar a andar: janela {r.StartWalk.StartWindow()} de {r.StartWalk.Duration:F2} s");
+                    if (r.StopWalk != null) Debug.Log($"Parar: janela {r.StopWalk.StopWindow()} de {r.StopWalk.Duration:F2} s");
+                    if (r.TurnLeft != null) Debug.Log($"Curva: {r.TurnLeft.TurnDegrees:F0} graus; meia-volta: {r.TurnAround?.TurnDegrees:F0} graus");
+                    if (r.CrouchWalk != null) Debug.Log($"Agachado: {r.CrouchWalk.Speed:F2} m/s");
+                    Debug.Log($"Salto: {r.Jump?.AirPhases()} / correndo {r.RunningJump?.AirPhases()}; beirada: {r.Vault?.Duration:F2} s; chute: {r.Kick?.Duration:F2} s");
+                }
+
+                // The turn row spins the hero to its left while it walks, as the motor would.
+                var spin = kind == "turn" ? TurnRate : 0f;
+                for (var i = 0; i < 60; i++)
+                {
+                    hero.transform.Rotate(0f, spin * Time.deltaTime, 0f);
+                    yield return null;
+                }
 
                 for (var f = 0; f < frames; f++)
                 {
@@ -218,17 +235,34 @@ namespace Zeldexile.Tests
                     {
                         // One full stride over the row: a captured loop when the rig has one, else 2 procedural steps.
                         var rig = animator.Rig;
-                        var clip = kind == "walk" ? rig.Walk : rig.Run;
-                        var speed = kind == "walk" ? WalkSpeed : 7.5f;
+                        var clip = kind == "run" ? rig.Run : kind == "crouch" ? rig.CrouchWalk : rig.Walk;
+                        var speed = rowSpeed;
                         var period = clip != null ? Mathf.Max(clip.CycleDistance / speed, clip.Duration / 1.6f)
                             : (kind == "walk" ? 3f : 3.9f) / speed;
                         if (f == 0 && clip != null)
                             Debug.Log($"Clipe {kind}: {clip.Speed:F2} m/s, ciclo {clip.CycleDistance:F2} m em {clip.Duration:F2} s");
-                        yield return new WaitForSeconds(period / frames);
+                        var until = Time.time + period / frames;
+                        while (Time.time < until)
+                        {
+                            hero.transform.Rotate(0f, spin * Time.deltaTime, 0f);
+                            yield return null;
+                        }
                     }
                     else
                     {
-                        var action = kind == "heavy" ? ActionKind.SlashHeavy : ActionKind.SlashLight;
+                        if (kind == "jump")
+                        {
+                            // Takeoff to touchdown: upward speed running out, then the fall building.
+                            var src = (FixedSource)animator.Source;
+                            src.Locomotion = Locomotion.Airborne;
+                            src.Velocity = new Vector3(0f, Mathf.Lerp(7f, -7f, f / (frames - 1f)), 0f);
+                            // By time, not frames: batch mode runs far above 60 fps and the pose blends over time.
+                            yield return new WaitForSeconds(0.35f);
+                        }
+                        else
+                        {
+                        var action = kind == "heavy" ? ActionKind.SlashHeavy : kind == "kick" ? ActionKind.Kick
+                            : kind == "vault" ? ActionKind.Vault : ActionKind.SlashLight;
                         if (f == 0 && kind == "overhead")
                         {
                             animator.Play(ActionKind.SlashLight);
@@ -236,8 +270,10 @@ namespace Zeldexile.Tests
                         }
 
                         animator.Hold(action, (f + 0.5f) / frames * 0.9f);
-                        for (var i = 0; i < 12; i++) yield return null;
+                        yield return new WaitForSeconds(0.35f);
+                        }
                     }
+
 
                     var rt = new RenderTexture(cellW, cellH, 24);
                     cam.targetTexture = rt;
@@ -261,6 +297,48 @@ namespace Zeldexile.Tests
             Object.Destroy(cam.gameObject);
             Object.Destroy(light.gameObject);
             Object.Destroy(stage);
+        }
+
+        /// <summary>
+        /// Start, stop, about-turn, turning and crouch transitions run on the captured clips without breaking the
+        /// pose: every bone stays a valid rotation and the soles stay near the ground.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator CapturedTransitionsKeepThePose()
+        {
+            var hero = Hero(null, new Vector3(0f, 320f, 0f), 0f, Locomotion.Grounded, Vector3.zero, ActionKind.None, 0f, "");
+            var animator = hero.GetComponent<CharacterAnimator>();
+            var source = (FixedSource)animator.Source;
+            var steps = new (Vector3 velocity, float turn, bool crouch, float seconds)[]
+            {
+                (Vector3.zero, 0f, false, 0.6f), (new Vector3(0f, 0f, 1.6f), 0f, false, 1.2f), (Vector3.zero, 0f, false, 1.2f),
+                (new Vector3(0f, 0f, 1.6f), 0f, false, 0.8f), (new Vector3(0f, 0f, -1.6f), 0f, false, 0.8f),
+                (new Vector3(0f, 0f, 1.6f), -80f, false, 1f), (new Vector3(0f, 0f, 1.6f), 80f, false, 1f),
+                (new Vector3(0f, 0f, 0.9f), 0f, true, 1f), (Vector3.zero, 0f, true, 0.5f), (new Vector3(0f, 0f, 7f), 0f, false, 0.8f),
+                (new Vector3(0f, 6f, 3f), 0f, false, 0.3f), (new Vector3(0f, -6f, 3f), 0f, false, 0.3f), (new Vector3(0f, 0f, 3f), 0f, false, 0.6f),
+            };
+            foreach (var (velocity, turn, crouch, seconds) in steps)
+            {
+                source.Velocity = velocity;
+                source.Locomotion = Mathf.Abs(velocity.y) > 0.1f ? Locomotion.Airborne : Locomotion.Grounded;
+                animator.Crouching = crouch;
+                var until = Time.time + seconds;
+                while (Time.time < until)
+                {
+                    hero.transform.Rotate(0f, turn * Time.deltaTime, 0f);
+                    yield return null;
+                    foreach (var t in animator.Rig.GetComponentsInChildren<Transform>())
+                    {
+                        var q = t.localRotation;
+                        Assert.That(float.IsNaN(q.x + q.y + q.z + q.w), Is.False, t.name);
+                    }
+
+                    if (source.Locomotion == Locomotion.Grounded)
+                        Assert.That(animator.Rig.LowestContactHeight(), Is.InRange(-0.25f, 0.35f), "Soles near the ground.");
+                }
+            }
+
+            Object.Destroy(hero);
         }
 
         /// <summary>A hero rig in a pose, with the gear shown as HeroPresenter would show it in play.</summary>

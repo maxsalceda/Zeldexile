@@ -17,6 +17,13 @@ modelo, textura, cena, configuração), antes de encerrar a tarefa:
    "D:\19 - Zeldexile\Builds\Windows\Zeldexile.exe" -zxshot "D:\19 - Zeldexile\Builds\Windows\shot-vale.png" -logFile "D:\19 - Zeldexile\Builds\Windows\log-vale.log"
    ```
    `-ilha` abre a ilha de protótipo e `-vitrine` a vitrine do herói (úteis para ver mudanças no personagem).
+   Para mudanças de animação, rode também com `-zxwalk`: o herói anda sozinho e o jogo salva
+   `<nome>-andar-1..6.png`, `<nome>-parado.png` e `<nome>-correr.png`. Os quadros de andar precisam mostrar
+   pernas em posições diferentes: os testes rodam no editor, e só o executável revela o que o editor esconde
+   (por exemplo, `AnimationClip.SampleAnimation` não move ossos fora do editor).
+   ```
+   "D:\19 - Zeldexile\Builds\Windows\Zeldexile.exe" -zxshot "D:\19 - Zeldexile\Builds\Windows\walk.png" -zxwalk
+   ```
 3. Diga ao usuário que o executável foi atualizado e o que testar nele. Se o build falhar, informe o erro do
    `Logs/build.log`; não encerre dizendo que está pronto.
 

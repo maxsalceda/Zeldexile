@@ -29,7 +29,11 @@ namespace Zeldexile.Characters
         Parry,
         Land,
         ClimbJump,
-        SwimDash
+        SwimDash,
+        /// <summary>Combo finisher with a one-handed sword: the captured sword kick.</summary>
+        Kick,
+        /// <summary>Pulling up over a ledge at the top of a climb.</summary>
+        Vault
     }
 
     /// <summary>What the animator needs to know about a moving body.</summary>
@@ -73,6 +77,8 @@ namespace Zeldexile.Characters
         public bool Armed { get; set; }
         /// <summary>Shield on the left forearm: at rest it hangs at the side, face out, as in the reference.</summary>
         public bool ShieldInHand { get; set; }
+        /// <summary>Crouched (sneaking): the captured crouched walk replaces the walk.</summary>
+        public bool Crouching { get; set; }
 
         /// <summary>
         /// Left arm brought forward and across the chest. The forearm shield's face (the arm's -X side) then
@@ -96,6 +102,20 @@ namespace Zeldexile.Characters
         private float _phase;
         private float _clipProgress;
         private float _groundSpeed;
+        private MotionClip _airClip;
+        private bool _wasAirborne;
+        private float _lastYaw = float.NaN;
+        private float _yawRate;
+        private float _turnWeight;
+        private float _crouchWeight;
+        private float _stillTime;
+        private float _walkTime;
+        private float _lastSpeed;
+        private MotionClip _oneShot;
+        private float _oneShotStart;
+        private float _oneShotEnd;
+        private float _oneShotTime;
+        private float _oneShotLength;
         private float _actionStart = -10f;
         private float _actionDuration;
         private int _actionIndex;
@@ -149,6 +169,8 @@ namespace Zeldexile.Characters
                 case ActionKind.Parry: return 0.28f;
                 case ActionKind.Land: return 0.35f;
                 case ActionKind.ClimbJump: return 0.3f;
+                case ActionKind.Kick: return 1.3f;
+                case ActionKind.Vault: return 1.1f;
                 case ActionKind.SwimDash: return 0.5f;
                 default: return 0.3f;
             }
@@ -165,14 +187,26 @@ namespace Zeldexile.Characters
             var grounded = Source.Locomotion == Locomotion.Grounded;
             _groundSpeed = grounded ? speed : 0f;
 
+            // Jumps: the standing or the running jump clip, chosen at takeoff; touching down plays its landing.
+            var airborne = Source.Locomotion == Locomotion.Airborne;
+            if (airborne && !_wasAirborne)
+                _airClip = speed > 1f ? Rig.RunningJump ?? Rig.Jump : Rig.Jump ?? Rig.RunningJump;
+            if (!airborne && _wasAirborne && grounded && _airClip != null)
+            {
+                var (_, _, landing) = _airClip.AirPhases();
+                PlayLocomotion(_airClip, (landing, Mathf.Min(1f, landing + 0.5f / _airClip.Duration)), 1.2f);
+            }
+
+            _wasAirborne = airborne;
+
             Pose pose;
             switch (Source.Locomotion)
             {
-                case Locomotion.Airborne: pose = Airborne(velocity.y); break;
+                case Locomotion.Airborne: pose = _airClip != null ? CapturedAir(velocity.y) : Airborne(velocity.y); break;
                 case Locomotion.Climbing: pose = Climbing(velocity, dt); break;
                 case Locomotion.Gliding: pose = Gliding(); break;
                 case Locomotion.Swimming: pose = Swimming(speed, dt); break;
-                default: pose = Rig.Walk != null || Rig.Run != null ? CapturedGround(speed, dt) : Ground(speed, run, dt); break;
+                default: pose = Rig.Walk != null || Rig.Run != null ? CapturedGround(speed, horizontal, dt) : Ground(speed, run, dt); break;
             }
 
             if (grounded)
@@ -191,7 +225,7 @@ namespace Zeldexile.Characters
 
         /// <summary>Strikes cut through the smoothing: the pose follows the swing curve almost as authored.</summary>
         private static bool IsStrike(ActionKind kind) =>
-            kind == ActionKind.SlashLight || kind == ActionKind.SlashHeavy || kind == ActionKind.Thrust;
+            kind == ActionKind.SlashLight || kind == ActionKind.SlashHeavy || kind == ActionKind.Thrust || kind == ActionKind.Kick;
 
         private void ApplyPose(Pose pose, bool grounded, float dt)
         {
@@ -467,10 +501,16 @@ namespace Zeldexile.Characters
         /// Walk and run from the captured loops (<see cref="CharacterRig.Walk"/>, <see cref="CharacterRig.Run"/>).
         /// Each loop plays at the cadence that keeps its planted foot still on the ground, up to 1.9 times its own
         /// pace; between the two speeds the loops cross-fade on a shared, heel-strike-aligned progress. Standing
-        /// still, the procedural idle takes over; the drawn sword and the forearm shield keep their procedural
-        /// holds on top of the clip's arm swing.
+        /// still, the procedural idle takes over. On top of that:
+        /// <list type="bullet">
+        /// <item>crouched, the crouched-walk loop replaces the walk (and holds its last step when stopped);</item>
+        /// <item>turning while walking blends in the turning loop, mirrored for right turns;</item>
+        /// <item>one-shots: the start clip when setting off from standing, the stop clip when halting after a
+        /// walk, the about-turn clip when the walk reverses.</item>
+        /// </list>
+        /// The drawn sword and the forearm shield keep their procedural holds over the clips' arm swing.
         /// </summary>
-        private Pose CapturedGround(float speed, float dt)
+        private Pose CapturedGround(float speed, Vector3 horizontal, float dt)
         {
             var walk = Rig.Walk ?? Rig.Run;
             var runClip = Rig.Run ?? Rig.Walk;
@@ -479,27 +519,121 @@ namespace Zeldexile.Characters
             var walkTop = walk.Speed * 1.2f;
             var runW = runClip == walk ? 0f
                 : Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(walkTop, Mathf.Max(walkTop + 0.5f, runClip.Speed * 0.9f), speed));
+            _crouchWeight = Mathf.MoveTowards(_crouchWeight, Crouching && Rig.CrouchWalk != null ? 1f : 0f, dt * 5f);
+            var crouch = _crouchWeight > 0f ? Rig.CrouchWalk : null;
+
             var cycle = Mathf.Lerp(walk.CycleDistance, runClip.CycleDistance, runW);
-            var maxRate = 1.9f / Mathf.Lerp(walk.Duration, runClip.Duration, runW);
-            if (speed > 0.05f) _clipProgress += Mathf.Min(speed / Mathf.Max(0.05f, cycle), maxRate) * dt;
+            var loop = Mathf.Lerp(walk.Duration, runClip.Duration, runW);
+            if (crouch != null)
+            {
+                cycle = Mathf.Lerp(cycle, crouch.CycleDistance, _crouchWeight);
+                loop = Mathf.Lerp(loop, crouch.Duration, _crouchWeight);
+            }
+
+            if (speed > 0.05f) _clipProgress += Mathf.Min(speed / Mathf.Max(0.05f, cycle), 1.9f / loop) * dt;
+
+            Transitions(speed, horizontal, walk, dt);
 
             var gait = walk.Sample(_clipProgress + walk.LeftStrike);
             if (runW > 0f) gait = Mix(gait, runClip.Sample(_clipProgress + runClip.LeftStrike), runW);
+
+            // Turning: the turning loop leans into the curve; it was captured turning left.
+            var turnTarget = Rig.TurnLeft != null
+                ? moving * (1f - runW) * Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(20f, 70f, Mathf.Abs(_yawRate)))
+                : 0f;
+            _turnWeight = Mathf.Lerp(_turnWeight, turnTarget, 1f - Mathf.Exp(-6f * dt));
+            if (_turnWeight > 0.01f)
+            {
+                var turn = Rig.TurnLeft.Sample(_clipProgress + Rig.TurnLeft.LeftStrike);
+                var clipTurnsRight = Rig.TurnLeft.TurnDegrees > 0f;
+                if (_yawRate > 0f != clipTurnsRight) turn = MotionClip.Mirror(turn);
+                gait = Mix(gait, turn, _turnWeight);
+            }
+
+            var pose = Mix(idle, gait, moving);
+            if (crouch != null) pose = Mix(pose, crouch.Sample(_clipProgress + crouch.LeftStrike), _crouchWeight);
+
+            if (_oneShot != null)
+            {
+                _oneShotTime += dt;
+                var u = _oneShotTime / _oneShotLength;
+                if (u >= 1f) _oneShot = null;
+                else
+                {
+                    var w = Mathf.SmoothStep(0f, 1f, u / 0.12f) * (1f - Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.75f, 1f, u)));
+                    pose = Mix(pose, _oneShot.Sample(Mathf.Lerp(_oneShotStart, _oneShotEnd, u)), w * (1f - _crouchWeight));
+                }
+            }
+
             if (Armed)
             {
-                gait.ArmR = idle.ArmR;
-                gait.ElbowR = idle.ElbowR;
-                gait.WristR = idle.WristR;
-                gait.FingersR = idle.FingersR;
+                pose.ArmR = idle.ArmR;
+                pose.ElbowR = idle.ElbowR;
+                pose.WristR = idle.WristR;
+                pose.FingersR = idle.FingersR;
             }
 
             if (ShieldInHand)
             {
-                gait.ElbowL = idle.ElbowL;
-                gait.FingersL = idle.FingersL;
+                pose.ElbowL = idle.ElbowL;
+                pose.FingersL = idle.FingersL;
             }
 
-            return Mix(idle, gait, moving);
+            return pose;
+        }
+
+        /// <summary>Watches speed, heading and turning to start the one-shot transition clips.</summary>
+        private void Transitions(float speed, Vector3 horizontal, MotionClip walk, float dt)
+        {
+            var yaw = transform.eulerAngles.y;
+            var rate = float.IsNaN(_lastYaw) || dt <= 0f ? 0f : Mathf.DeltaAngle(_lastYaw, yaw) / dt;
+            _lastYaw = yaw;
+            _yawRate = Mathf.Lerp(_yawRate, rate, 1f - Mathf.Exp(-8f * dt));
+
+            const float still = 0.15f;
+            var walkingPace = walk.Speed * 1.6f;
+            if (!Crouching)
+            {
+                if (_lastSpeed < still && speed >= still && _stillTime > 0.3f && speed < walkingPace && Rig.StartWalk != null)
+                    PlayLocomotion(Rig.StartWalk, Rig.StartWalk.StartWindow(), 1.15f);
+                else if (_lastSpeed >= still && speed < still && _walkTime > 0.5f && _lastSpeed < walkingPace && Rig.StopWalk != null)
+                    PlayLocomotion(Rig.StopWalk, Rig.StopWalk.StopWindow(), 1.15f);
+                else if (speed > 0.5f && speed < walkingPace && Rig.TurnAround != null && _oneShot != Rig.TurnAround
+                         && Vector3.Angle(horizontal, transform.forward) > 135f)
+                    PlayLocomotion(Rig.TurnAround, (0f, 0.9f), 1.4f);
+            }
+
+            // Setting off cancels a stop; halting cancels a start.
+            if (_oneShot == Rig.StopWalk && speed > 0.3f) _oneShot = null;
+            if (_oneShot == Rig.StartWalk && speed < 0.05f) _oneShot = null;
+
+            _stillTime = speed < still ? _stillTime + dt : 0f;
+            _walkTime = speed >= still ? _walkTime + dt : 0f;
+            _lastSpeed = speed;
+        }
+
+        private void PlayLocomotion(MotionClip clip, (float start, float end) window, float rate)
+        {
+            if (window.end <= window.start) return;
+            _oneShot = clip;
+            _oneShotStart = window.start;
+            _oneShotEnd = window.end;
+            _oneShotTime = 0f;
+            _oneShotLength = (window.end - window.start) * clip.Duration / rate;
+        }
+
+        /// <summary>
+        /// In the air with a captured jump: rising plays takeoff to apex as the upward speed runs out, falling plays
+        /// apex to just before touchdown as the downward speed builds (a long fall holds the pre-landing pose).
+        /// </summary>
+        private Pose CapturedAir(float verticalSpeed)
+        {
+            const float launch = 7.5f; // about the motor's jump speed
+            var (takeoff, apex, landing) = _airClip.AirPhases();
+            var progress = verticalSpeed > 0f
+                ? Mathf.Lerp(takeoff, apex, 1f - Mathf.Clamp01(verticalSpeed / launch))
+                : Mathf.Lerp(apex, Mathf.Max(apex, landing - 0.02f), Mathf.Clamp01(-verticalSpeed / launch));
+            return _airClip.Sample(progress);
         }
 
         private static Pose Airborne(float verticalSpeed)
@@ -718,6 +852,19 @@ namespace Zeldexile.Characters
                 case ActionKind.Parry: target = Parry(t); break;
                 case ActionKind.Land: target = Land(); weight = 1f - t; break;
                 case ActionKind.ClimbJump: target = ClimbJump(); break;
+                case ActionKind.Kick:
+                    if (Rig.Kick != null)
+                    {
+                        target = Rig.Kick.Sample(t * 0.98f);
+                        target.FingersR = E(Grip);
+                        if (ShieldInHand) target.FingersL = E(Grip);
+                    }
+                    else target = SlashLight(t, _actionIndex);
+                    break;
+                case ActionKind.Vault:
+                    target = Rig.Vault != null ? Rig.Vault.Sample(t * 0.98f) : ClimbJump();
+                    weight = Mathf.SmoothStep(0f, 1f, t / 0.08f) * (1f - Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.85f, 1f, t)));
+                    break;
                 case ActionKind.SwimDash: target = SwimDash(pose); break;
                 default: return;
             }

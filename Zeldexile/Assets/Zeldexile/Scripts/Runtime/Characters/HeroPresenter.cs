@@ -19,6 +19,8 @@ namespace Zeldexile.Characters
         public CharacterRig Rig;
         /// <summary>True while a menu that kneels the hero is open (cooking, prayer).</summary>
         public System.Func<bool> Kneeling;
+        /// <summary>The motor's crouch toggle; the animator walks crouched while it holds.</summary>
+        public System.Func<bool> Crouching;
 
         private readonly Dictionary<GearPart, List<Renderer>> _parts = new Dictionary<GearPart, List<Renderer>>();
         private Transform _bladeRoot;
@@ -81,6 +83,7 @@ namespace Zeldexile.Characters
                 Animator.Guarding = guarding;
                 Animator.Aiming = aiming;
                 Animator.Kneeling = kneeling;
+                Animator.Crouching = Crouching != null && Crouching();
                 Animator.Armed = hasWeapon && drawn;
                 Animator.ShieldInHand = hasShield && (guarding || drawn);
             }

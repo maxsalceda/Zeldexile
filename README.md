@@ -21,6 +21,7 @@ Design completo: [Docs/GDD.md](Docs/GDD.md) e a Bíblia de Design (link no GDD).
 | Andar / câmera | WASD / mouse | Analógicos |
 | Zoom da câmera (2,5 a 12 m) | Roda do mouse | Analógico direito pressionado + cima/baixo |
 | Correr (gasta stamina) | Shift | B / Círculo |
+| Agachar / levantar (anda devagar) | Ctrl | Analógico esquerdo pressionado |
 | Pular / planar (no ar) / salto de escalada | Espaço | X / Triângulo |
 | Escalar | andar contra a parede | — |
 | Atacar com a arma | Clique esquerdo | Y / Quadrado |
