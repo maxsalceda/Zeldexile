@@ -171,6 +171,88 @@ namespace Zeldexile.Tests
             }
         }
 
+        /// <summary>
+        /// Motion review, seen from the side: one row of frames each for the walk (4 m/s), the run (7.5 m/s), the
+        /// flat slash, the overhead slash and the heavy chop. Saved as Logs/preview-motion.png.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator RenderMotionSheet()
+        {
+            const int frames = 8, cellW = 300, cellH = 380;
+            var rows = new[] { "walk", "run", "slash", "overhead", "heavy" };
+            var sheet = new Texture2D(frames * cellW, rows.Length * cellH, TextureFormat.RGB24, false);
+            var stage = new GameObject("Folha de movimento");
+            stage.transform.position = new Vector3(0f, 300f, 0f);
+            var light = new GameObject("Luz").AddComponent<Light>();
+            light.type = LightType.Directional;
+            light.transform.rotation = Quaternion.Euler(40f, -30f, 0f);
+            // Earlier tests may leave their sun in the scene: only light the stage when there is none.
+            light.enabled = Object.FindObjectsByType<Light>(FindObjectsSortMode.None).Length == 1;
+            var cam = new GameObject("Câmera de movimento").AddComponent<Camera>();
+            cam.enabled = false;
+            cam.clearFlags = CameraClearFlags.SolidColor;
+            cam.backgroundColor = new Color(0.93f, 0.93f, 0.92f);
+            cam.orthographic = true;
+            cam.orthographicSize = 1.15f;
+            cam.transform.position = stage.transform.position + new Vector3(0f, 1.0f, -6f);
+
+            for (var row = 0; row < rows.Length; row++)
+            {
+                var kind = rows[row];
+                var moving = kind == "walk" || kind == "run";
+                // Side view: walking toward screen right; swings seen three-quarter so the trunk twist shows.
+                var hero = Hero(stage.transform, Vector3.zero, moving ? 90f : 125f, Locomotion.Grounded,
+                    kind == "walk" ? new Vector3(0f, 0f, 4f) : kind == "run" ? new Vector3(0f, 0f, 7.5f) : Vector3.zero,
+                    ActionKind.None, 0f, moving ? "" : "armed");
+                var animator = hero.GetComponent<CharacterAnimator>();
+                // FixedSource velocity is world space; the walk reads its length only.
+                for (var i = 0; i < 60; i++) yield return null;
+
+                for (var f = 0; f < frames; f++)
+                {
+                    if (moving)
+                    {
+                        // One full stride over the row: 2 steps of strideLength 1.5 m (x1.3 when running).
+                        var period = kind == "walk" ? 3f / 4f : 3.9f / 7.5f;
+                        yield return new WaitForSeconds(period / frames);
+                    }
+                    else
+                    {
+                        var action = kind == "heavy" ? ActionKind.SlashHeavy : ActionKind.SlashLight;
+                        if (f == 0 && kind == "overhead")
+                        {
+                            animator.Play(ActionKind.SlashLight);
+                            animator.Play(ActionKind.SlashLight); // second swing of the combo: overhead
+                        }
+
+                        animator.Hold(action, (f + 0.5f) / frames * 0.9f);
+                        for (var i = 0; i < 12; i++) yield return null;
+                    }
+
+                    var rt = new RenderTexture(cellW, cellH, 24);
+                    cam.targetTexture = rt;
+                    cam.Render();
+                    RenderTexture.active = rt;
+                    sheet.ReadPixels(new Rect(0, 0, cellW, cellH), f * cellW, (rows.Length - 1 - row) * cellH);
+                    RenderTexture.active = null;
+                    cam.targetTexture = null;
+                    rt.Release();
+                }
+
+                Object.Destroy(hero);
+                yield return null;
+            }
+
+            sheet.Apply();
+            var dir = Path.Combine(Application.dataPath, "..", "Logs");
+            Directory.CreateDirectory(dir);
+            File.WriteAllBytes(Path.Combine(dir, "preview-motion.png"), sheet.EncodeToPNG());
+            Object.Destroy(sheet);
+            Object.Destroy(cam.gameObject);
+            Object.Destroy(light.gameObject);
+            Object.Destroy(stage);
+        }
+
         /// <summary>A hero rig in a pose, with the gear shown as HeroPresenter would show it in play.</summary>
         private static GameObject Hero(Transform parent, Vector3 at, float yaw, Locomotion loco, Vector3 velocity,
             ActionKind action, float progress, string stance)

@@ -183,9 +183,14 @@ namespace Zeldexile.Characters
             if (Rig.Glider.gameObject.activeSelf != pose.ShowGlider) Rig.Glider.gameObject.SetActive(pose.ShowGlider);
         }
 
+        /// <summary>Strikes cut through the smoothing: the pose follows the swing curve almost as authored.</summary>
+        private static bool IsStrike(ActionKind kind) =>
+            kind == ActionKind.SlashLight || kind == ActionKind.SlashHeavy || kind == ActionKind.Thrust;
+
         private void ApplyPose(Pose pose, bool grounded, float dt)
         {
-            var k = 1f - Mathf.Exp(-blend * dt);
+            var rate = IsStrike(CurrentAction) ? Mathf.Max(blend, 42f) : blend;
+            var k = 1f - Mathf.Exp(-rate * dt);
             Blend(Rig.Hips, N(pose.Hips), k);
             Split(Rig.Torso, Rig.Chest, N(pose.Torso), LowerSpineShare, k);
             Split(Rig.Neck, Rig.Head, N(pose.Head), NeckShare, k);
@@ -343,47 +348,112 @@ namespace Zeldexile.Characters
 
         // ---------- locomotion ----------
 
+        // Joint angles over one stride of a leg, from heel strike (0) through push-off and swing back to the next
+        // heel strike (1), as (phase, degrees) pairs. Hip: flexion forward. Knee: flexion. Ankle: toes down.
+        // Shaped on human gait curves: the stance knee gives a little as the weight lands, the swing knee folds
+        // to clear the ground, the ankle pushes off before the foot leaves.
+        private static readonly float[] WalkHip = { 0f, 22f, 0.12f, 18f, 0.35f, 2f, 0.55f, -11f, 0.66f, -5f, 0.8f, 18f, 0.9f, 25f };
+        private static readonly float[] WalkKnee = { 0f, 4f, 0.12f, 18f, 0.35f, 6f, 0.52f, 22f, 0.68f, 62f, 0.8f, 42f, 0.95f, 4f };
+        private static readonly float[] WalkAnkle = { 0f, -4f, 0.1f, 3f, 0.4f, -6f, 0.58f, 16f, 0.66f, 6f, 0.82f, -4f };
+        private static readonly float[] RunHip = { 0f, 30f, 0.15f, 14f, 0.33f, -14f, 0.45f, -18f, 0.62f, 12f, 0.8f, 46f, 0.9f, 40f };
+        private static readonly float[] RunKnee = { 0f, 22f, 0.12f, 40f, 0.3f, 20f, 0.45f, 64f, 0.62f, 108f, 0.76f, 82f, 0.92f, 30f };
+        private static readonly float[] RunAnkle = { 0f, 0f, 0.1f, -10f, 0.3f, 20f, 0.4f, 26f, 0.6f, 2f, 0.85f, -6f };
+
+        /// <summary>Periodic Catmull-Rom through (phase, value) pairs: smooth, so the gait has no corners.</summary>
+        private static float Cycle(float[] keys, float phase)
+        {
+            var n = keys.Length / 2;
+            phase -= Mathf.Floor(phase);
+            var i = n - 1;
+            for (var k = 0; k < n; k++)
+                if (keys[k * 2] > phase) { i = k - 1; break; }
+            if (i < 0) i = n - 1;
+
+            float T(int k) => keys[((k % n) + n) % n * 2] + Mathf.Floor((float)k / n);
+            float V(int k) => keys[((k % n) + n) % n * 2 + 1];
+            var t0 = T(i);
+            var t1 = T(i + 1);
+            var span = t1 - t0;
+            var p = phase < t0 ? phase + 1f : phase;
+            var u = span > 1e-5f ? (p - t0) / span : 0f;
+            var m1 = (V(i + 1) - V(i - 1)) / Mathf.Max(1e-5f, T(i + 1) - T(i - 1)) * span;
+            var m2 = (V(i + 2) - V(i)) / Mathf.Max(1e-5f, T(i + 2) - T(i)) * span;
+            var u2 = u * u;
+            var u3 = u2 * u;
+            return (2f * u3 - 3f * u2 + 1f) * V(i) + (u3 - 2f * u2 + u) * m1 + (-2f * u3 + 3f * u2) * V(i + 1) + (u3 - u2) * m2;
+        }
+
+        /// <summary>How free a foot is from the ground at this stride phase: planted in stance, free from heel-off to heel strike.</summary>
+        private static float FootFree(float phase, float liftOff)
+        {
+            phase -= Mathf.Floor(phase);
+            var rise = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(liftOff - 0.12f, liftOff, phase));
+            var land = 1f - Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.93f, 1f, phase));
+            return rise * land;
+        }
+
         private Pose Ground(float speed, float run, float dt)
         {
-            if (speed > 0.1f) _phase += speed / strideLength * Mathf.PI * dt;
-            var swing = Mathf.Sin(_phase); // > 0: left leg ahead
-            var lift = Mathf.Cos(_phase); // > 0 while the left leg travels forward (its knee folds to clear the ground)
-            var legAmp = Mathf.Lerp(0f, 42f, run);
-            var armAmp = Mathf.Lerp(0f, 40f, run);
-            var breathe = Mathf.Sin(Time.time * 2.2f) * (1f - run);
-            // Idle: a slow look around, knees soft, arms relaxed with a slight bend.
-            var idle = 1f - Mathf.Clamp01(speed / 0.5f);
-            var lookAround = Mathf.Sin(Time.time * 0.6f) * 14f * idle;
-            var elbowBend = -12f - 70f * run;
-            var swingL = Mathf.Max(0f, lift) * run;
-            var swingR = Mathf.Max(0f, -lift) * run;
-            // The trailing foot rolls onto its ball before it leaves the ground.
-            var pushL = Mathf.Max(0f, -swing) * run;
-            var pushR = Mathf.Max(0f, swing) * run;
+            // Walk and run are two gaits, not one curve scaled by speed: the run takes over near full speed.
+            var moving = Mathf.Clamp01(speed / 1.2f);
+            var runW = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.62f, 0.92f, run));
+            var step = strideLength * Mathf.Lerp(1f, 1.3f, runW);
+            if (speed > 0.1f) _phase += speed / step * Mathf.PI * dt;
+            var pL = _phase / (2f * Mathf.PI);
+            var pR = pL + 0.5f;
 
+            float Hip(float p) => Mathf.Lerp(Cycle(WalkHip, p), Cycle(RunHip, p), runW) * moving;
+            float Knee(float p) => Mathf.Lerp(Cycle(WalkKnee, p), Cycle(RunKnee, p), runW) * moving;
+            float Ankle(float p) => Mathf.Lerp(Cycle(WalkAnkle, p), Cycle(RunAnkle, p), runW) * moving;
+            var liftOff = Mathf.Lerp(0.6f, 0.38f, runW);
+
+            // Idle: weight shifts slowly from foot to foot, knees soft, a slow look around, breathing.
+            var idle = 1f - moving;
+            var breathe = Mathf.Sin(Time.time * 2.2f) * idle;
+            var shift = Mathf.Sin(Time.time * 0.45f) * idle;
+            var lookAround = Mathf.Sin(Time.time * 0.6f) * 14f * idle;
+
+            // Pelvis: turns with the leading leg, drops on the swing side; the chest turns the other way.
+            var sway = Mathf.Sin(pL * 2f * Mathf.PI); // > 0 while the left leg is the stance leg
+            var turn = Mathf.Cos(pL * 2f * Mathf.PI); // > 0 when the left leg is ahead
+            var pelvisYaw = turn * Mathf.Lerp(6f, 9f, runW) * moving;
+            var pelvisRoll = -sway * Mathf.Lerp(4f, 3f, runW) * moving + shift * 3f;
+            var lean = Mathf.Lerp(4f, 16f, runW) * moving;
+
+            // Arms swing against the legs, a beat late; elbows fold more as the pace rises.
+            // The hip curve leans forward (flexion peaks higher than extension): centre it so the arms swing evenly.
+            var armAmp = Mathf.Lerp(1.3f, 1.5f, runW) * moving;
+            var armCentre = Mathf.Lerp(7f, 14f, runW) * moving;
+            var armL = (Hip(pR - 0.04f) - armCentre) * armAmp;
+            var armR = (Hip(pL - 0.04f) - armCentre) * armAmp;
+            var elbowBase = Mathf.Lerp(-16f, -88f, runW) * moving - 10f * idle;
+            var elbowL = elbowBase - Mathf.Max(0f, armL) * 0.5f;
+            var elbowR = elbowBase - Mathf.Max(0f, armR) * 0.5f;
+
+            var kneeSoft = 6f * idle;
             return new Pose
             {
-                Hips = E(0f, swing * 6f * run),
-                Torso = E(run * 14f + breathe * 1.5f, -swing * 8f * run),
-                Head = E(-run * 8f, lookAround),
-                ArmL = E(swing * armAmp, 0f, -6f - idle * 4f),
-                ArmR = Armed ? E(-26f - swing * armAmp * 0.35f, -10f, 14f) : E(-swing * armAmp, 0f, 6f + idle * 4f),
-                ElbowL = E(ShieldInHand ? -22f : elbowBend),
-                ElbowR = Armed ? E(-42f) : E(elbowBend),
+                Hips = E(0f, pelvisYaw, pelvisRoll),
+                Torso = E(lean + breathe * 1.5f, -pelvisYaw * 1.6f, -pelvisRoll * 0.7f),
+                Head = E(-lean * 0.5f, pelvisYaw * 0.6f + lookAround, pelvisRoll * 0.3f),
+                ArmL = E(-armL, 0f, -6f - idle * 4f - runW * 6f),
+                ArmR = Armed ? E(-26f - armR * 0.35f, -10f, 14f) : E(-armR, 0f, 6f + idle * 4f + runW * 6f),
+                ElbowL = E(ShieldInHand ? Mathf.Min(-22f, elbowBase * 0.6f) : elbowL),
+                ElbowR = Armed ? E(-42f - runW * 20f) : E(elbowR),
                 WristL = E(-6f),
                 WristR = Armed ? E(-12f) : E(-6f),
-                FingersL = E(ShieldInHand ? Grip : Relaxed - 30f * run),
-                FingersR = E(Armed ? Grip : Relaxed - 30f * run),
-                LegL = E(-swing * legAmp - 3f * idle),
-                LegR = E(swing * legAmp - 3f * idle),
-                KneeL = E(5f * idle + 8f * run + 75f * swingL),
-                KneeR = E(5f * idle + 8f * run + 75f * swingR),
-                AnkleL = E(28f * pushL),
-                AnkleR = E(28f * pushR),
-                ToesL = E(-30f * pushL),
-                ToesR = E(-30f * pushR),
-                FootFreeL = swingL * 0.8f,
-                FootFreeR = swingR * 0.8f
+                FingersL = E(ShieldInHand ? Grip : Relaxed - 30f * runW),
+                FingersR = E(Armed ? Grip : Relaxed - 30f * runW),
+                LegL = E(-Hip(pL) - 3f * idle, 0f, -shift * 2f),
+                LegR = E(-Hip(pR) - 3f * idle, 0f, -shift * 2f),
+                KneeL = E(Knee(pL) + kneeSoft + Mathf.Max(0f, -shift) * 8f),
+                KneeR = E(Knee(pR) + kneeSoft + Mathf.Max(0f, shift) * 8f),
+                AnkleL = E(Ankle(pL)),
+                AnkleR = E(Ankle(pR)),
+                ToesL = E(-28f * moving * Mathf.Clamp01(Ankle(pL) / 16f)),
+                ToesR = E(-28f * moving * Mathf.Clamp01(Ankle(pR) / 16f)),
+                FootFreeL = FootFree(pL, liftOff) * moving,
+                FootFreeR = FootFree(pR, liftOff) * moving
             };
         }
 
@@ -582,7 +652,7 @@ namespace Zeldexile.Characters
                 return;
             }
 
-            var weight = Mathf.Sin(t * Mathf.PI);
+            var weight = IsStrike(CurrentAction) ? StrikeWeight(t) : Mathf.Sin(t * Mathf.PI);
             Pose target;
             switch (CurrentAction)
             {
@@ -605,81 +675,111 @@ namespace Zeldexile.Characters
             pose = Mix(pose, target, Mathf.Clamp01(weight));
         }
 
+        /// <summary>Strikes reach full weight within the first 12 % (the wind-up shows) and release over the last 25 %.</summary>
+        private static float StrikeWeight(float t) =>
+            Mathf.SmoothStep(0f, 1f, t / 0.12f) * (1f - Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.75f, 1f, t)));
+
         /// <summary>
-        /// Wind-up with the elbow folded and the wrist cocked, then the arm extends and the wrist snaps through
-        /// the cut. Even swings cut sideways from the right, odd swings come overhead.
+        /// The swing's timing: 0 while winding up (anticipation), then a fast cut that overshoots a little and
+        /// settles at 1 (follow-through). <paramref name="start"/> and <paramref name="end"/> bound the cut.
+        /// </summary>
+        private static float Cut(float t, float start, float end)
+        {
+            var u = Mathf.Clamp01((t - start) / (end - start));
+            const float back = 1.6f; // ease-out-back: the blade and the body carry past the line, then settle
+            var v = u - 1f;
+            return 1f + (back + 1f) * v * v * v + back * v * v;
+        }
+
+        private static float L(float a, float b, float t) => Mathf.LerpUnclamped(a, b, t);
+
+        /// <summary>
+        /// One-handed sword. The body leads: hips, then chest, then shoulder, then the wrist snaps the blade
+        /// through. Even swings cut flat from the right, coiling the trunk and bending it into the cut; odd swings
+        /// come overhead, arching back and folding the trunk forward over the lead leg.
         /// </summary>
         private static Pose SlashLight(float t, int index)
         {
-            var swing = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((t - 0.15f) / 0.5f)); // 0 = wound up, 1 = through
+            var c = Cut(t, 0.26f, 0.46f);
+            var lag = Cut(t, 0.3f, 0.52f); // arm and wrist trail the trunk by a few hundredths
             if (index % 2 == 0)
             {
                 return new Pose
                 {
-                    Hips = E(0f, Mathf.Lerp(28f, -24f, swing)),
-                    Torso = E(12f, Mathf.Lerp(30f, -40f, swing)),
-                    Head = E(-4f, Mathf.Lerp(-10f, 18f, swing)),
-                    ArmL = E(-24f, 0f, -28f),
-                    ArmR = E(Mathf.Lerp(-100f, -70f, swing), Mathf.Lerp(55f, -58f, swing), Mathf.Lerp(20f, -10f, swing)),
-                    ElbowL = E(-30f),
-                    ElbowR = E(Mathf.Lerp(-80f, -8f, swing)),
-                    WristR = E(Mathf.Lerp(25f, -20f, swing)),
+                    Hips = E(0f, L(32f, -30f, c), L(-3f, 4f, c)),
+                    Torso = E(L(4f, 24f, c), L(48f, -58f, c), L(-10f, 16f, c)),
+                    Head = E(L(-2f, 6f, c), L(-26f, 30f, c), L(6f, -10f, c)),
+                    ArmL = E(L(-50f, -12f, c), L(-20f, 10f, c), L(-24f, -42f, c)),
+                    ArmR = E(L(-96f, -78f, lag), L(72f, -72f, lag), L(26f, -16f, lag)),
+                    ElbowL = E(L(-60f, -78f, c)),
+                    ElbowR = E(L(-100f, -4f, lag)),
+                    WristR = E(L(38f, -28f, lag), L(-10f, 14f, lag)),
                     FingersL = E(Grip),
                     FingersR = E(Grip),
-                    LegL = E(-26f),
-                    LegR = E(16f),
-                    KneeL = E(32f),
-                    KneeR = E(14f),
-                    AnkleR = E(12f),
-                    ToesR = E(-15f)
+                    LegL = E(L(-22f, -42f, c), L(-6f, 4f, c)),
+                    LegR = E(L(12f, 28f, c)),
+                    KneeL = E(L(30f, 58f, c)),
+                    KneeR = E(L(18f, 14f, c)),
+                    AnkleR = E(L(8f, 26f, c)),
+                    ToesR = E(L(-10f, -28f, c)),
+                    FootFreeR = 0.15f,
+                    HipsOffsetZ = L(-0.04f, 0.16f, c)
                 };
             }
 
             return new Pose
             {
-                Hips = E(0f, 6f),
-                Torso = E(Mathf.Lerp(-12f, 26f, swing), -8f),
-                Head = E(Mathf.Lerp(-16f, 8f, swing)),
-                ArmL = E(-30f, 0f, -26f),
-                ArmR = E(Mathf.Lerp(-175f, -60f, swing), -6f, Mathf.Lerp(8f, 0f, swing)),
-                ElbowL = E(-35f),
-                ElbowR = E(Mathf.Lerp(-70f, -5f, swing)),
-                WristR = E(Mathf.Lerp(30f, -25f, swing)),
+                Hips = E(L(-4f, 10f, c), L(12f, -8f, c)),
+                Torso = E(L(-20f, 42f, c), L(14f, -10f, c), L(-4f, 6f, c)),
+                Head = E(L(-18f, 14f, c), L(-6f, 4f, c)),
+                ArmL = E(L(-64f, -18f, c), 0f, L(-22f, -36f, c)),
+                ArmR = E(L(-172f, -42f, lag), L(-4f, -10f, lag), L(10f, -2f, lag)),
+                ElbowL = E(L(-48f, -70f, c)),
+                ElbowR = E(L(-104f, -4f, lag)),
+                WristR = E(L(42f, -34f, lag)),
                 FingersL = E(Grip),
                 FingersR = E(Grip),
-                LegL = E(-28f),
-                LegR = E(18f),
-                KneeL = E(Mathf.Lerp(18f, 44f, swing)),
-                KneeR = E(14f),
-                AnkleR = E(14f),
-                ToesR = E(-18f)
+                LegL = E(L(-20f, -44f, c)),
+                LegR = E(L(12f, 30f, c)),
+                KneeL = E(L(16f, 62f, c)),
+                KneeR = E(L(10f, 18f, c)),
+                AnkleR = E(L(10f, 28f, c)),
+                ToesR = E(L(-12f, -30f, c)),
+                FootFreeR = 0.15f,
+                HipsOffsetZ = L(-0.05f, 0.18f, c)
             };
         }
 
-        /// <summary>Both arms raised with the elbows folded and the body arched back, then a shouted chop that drops the whole body.</summary>
+        /// <summary>
+        /// Two-handed overhead chop: a long wind-up with the body arched back and the blade over the head, then
+        /// the whole trunk folds forward over a deep lunge and the arms follow it down.
+        /// </summary>
         private static Pose SlashHeavy(float t)
         {
-            var swing = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((t - 0.3f) / 0.4f));
+            var c = Cut(t, 0.36f, 0.56f);
+            var lag = Cut(t, 0.4f, 0.6f);
             return new Pose
             {
-                Hips = E(0f, 10f),
-                Torso = E(Mathf.Lerp(-22f, 34f, swing), Mathf.Lerp(12f, -14f, swing)),
-                Head = E(Mathf.Lerp(-20f, 12f, swing)),
-                Jaw = E(14f * swing),
-                ArmL = E(Mathf.Lerp(-165f, -50f, swing), 18f, -14f),
-                ArmR = E(Mathf.Lerp(-170f, -52f, swing), -6f, 10f),
-                ElbowL = E(Mathf.Lerp(-75f, -10f, swing)),
-                ElbowR = E(Mathf.Lerp(-75f, -10f, swing)),
-                WristL = E(Mathf.Lerp(30f, -25f, swing)),
-                WristR = E(Mathf.Lerp(30f, -25f, swing)),
+                Hips = E(L(-6f, 14f, c), L(16f, -6f, c)),
+                Torso = E(L(-28f, 52f, c), L(18f, -14f, c), L(-6f, 6f, c)),
+                Head = E(L(-24f, 16f, c)),
+                Jaw = E(14f * Mathf.Clamp01(c)),
+                ArmL = E(L(-170f, -40f, lag), L(18f, 14f, lag), -14f),
+                ArmR = E(L(-176f, -44f, lag), L(-6f, -8f, lag), 10f),
+                ElbowL = E(L(-90f, -8f, lag)),
+                ElbowR = E(L(-90f, -8f, lag)),
+                WristL = E(L(40f, -30f, lag)),
+                WristR = E(L(40f, -30f, lag)),
                 FingersL = E(Grip),
                 FingersR = E(Grip),
-                LegL = E(-36f),
-                LegR = E(24f),
-                KneeL = E(Mathf.Lerp(28f, 66f, swing)),
-                KneeR = E(Mathf.Lerp(10f, 30f, swing)),
-                AnkleR = E(18f),
-                ToesR = E(-22f)
+                LegL = E(L(-24f, -50f, c)),
+                LegR = E(L(16f, 34f, c)),
+                KneeL = E(L(22f, 76f, c)),
+                KneeR = E(L(8f, 30f, c)),
+                AnkleR = E(L(12f, 30f, c)),
+                ToesR = E(L(-14f, -32f, c)),
+                FootFreeR = 0.15f,
+                HipsOffsetZ = L(-0.06f, 0.22f, c)
             };
         }
 

@@ -14,7 +14,7 @@ namespace Zeldexile.Characters
         /// <summary>Height of the hero from sole to top of the hair, in meters (the controller is 1.8 m).</summary>
         public const float TargetHeight = 1.75f;
 
-        /// <summary>Rig joint and the Mixamo bone it drives (without the "mixamorig:" prefix).</summary>
+        /// <summary>Rig joint and the bone it drives, by its canonical (Mixamo) name; see <see cref="CanonicalBones"/>.</summary>
         private static readonly (string joint, string bone)[] Map =
         {
             ("Quadril", "Hips"), ("Tronco", "Spine"), ("Tórax", "Spine2"), ("Pescoço", "Neck"), ("Cabeça", "Head"),
@@ -36,12 +36,7 @@ namespace Zeldexile.Characters
             model.name = prefab.name;
             foreach (var animator in model.GetComponentsInChildren<Animator>(true)) Object.Destroy(animator);
 
-            var bones = new Dictionary<string, Transform>();
-            foreach (var t in model.GetComponentsInChildren<Transform>(true))
-            {
-                var colon = t.name.LastIndexOf(':');
-                bones[colon < 0 ? t.name : t.name.Substring(colon + 1)] = t;
-            }
+            var bones = CanonicalBones(model.transform);
 
             var skins = model.GetComponentsInChildren<SkinnedMeshRenderer>(true);
             if (skins.Length == 0 || !bones.ContainsKey("Hips") || !bones.ContainsKey("LeftArm") || !bones.ContainsKey("Head"))
@@ -52,9 +47,11 @@ namespace Zeldexile.Characters
 
             // Bind pose (repaired), then face +Z (the character's left on -X), straighten the skeleton into a standing
             // rest pose, and stand the soles on y = 0 at the target height with the hips over the origin.
+            var names = new Dictionary<Transform, string>();
+            foreach (var pair in bones) names[pair.Value] = pair.Key;
             foreach (var skin in skins)
             {
-                RepairBindposes(skin);
+                RepairBindposes(skin, names);
                 ToBindPose(skin);
             }
 
@@ -127,6 +124,56 @@ namespace Zeldexile.Characters
             return rig;
         }
 
+        /// <summary>The bone names the rest of this class uses (Mixamo's), each with the spellings other exports use.</summary>
+        private static readonly string[][] BoneNames =
+        {
+            new[] { "Hips" }, new[] { "Neck" }, new[] { "Head" }, new[] { "HeadTop_End", "head_end", "HeadEnd" },
+            new[] { "LeftShoulder" }, new[] { "LeftArm" }, new[] { "LeftForeArm" }, new[] { "LeftHand" },
+            new[] { "RightShoulder" }, new[] { "RightArm" }, new[] { "RightForeArm" }, new[] { "RightHand" },
+            new[] { "LeftUpLeg" }, new[] { "LeftLeg" }, new[] { "LeftFoot" }, new[] { "LeftToeBase" }, new[] { "LeftToe_End" },
+            new[] { "RightUpLeg" }, new[] { "RightLeg" }, new[] { "RightFoot" }, new[] { "RightToeBase" }, new[] { "RightToe_End" },
+        };
+
+        /// <summary>
+        /// The model's bones under Mixamo's names, whatever the export called them: no "mixamorig:" prefix, any
+        /// letter case. The spine is named by position, not by name: Meshy's own rig counts it top-down (Spine02,
+        /// Spine01, Spine under the neck) where Mixamo counts bottom-up. The bone above the hips becomes "Spine",
+        /// the one carrying the neck and shoulders "Spine2", one in between "Spine1".
+        /// </summary>
+        private static Dictionary<string, Transform> CanonicalBones(Transform model)
+        {
+            var raw = new Dictionary<string, Transform>(System.StringComparer.OrdinalIgnoreCase);
+            foreach (var t in model.GetComponentsInChildren<Transform>(true))
+            {
+                var colon = t.name.LastIndexOf(':');
+                var bare = colon < 0 ? t.name : t.name.Substring(colon + 1);
+                if (!raw.ContainsKey(bare)) raw[bare] = t;
+            }
+
+            var bones = new Dictionary<string, Transform>();
+            foreach (var spellings in BoneNames)
+                foreach (var spelling in spellings)
+                    if (raw.TryGetValue(spelling, out var t))
+                    {
+                        bones[spellings[0]] = t;
+                        break;
+                    }
+
+            if (bones.TryGetValue("Hips", out var hips) && bones.TryGetValue("Neck", out var neck))
+            {
+                var chain = new List<Transform>();
+                for (var t = neck.parent; t != null && t != hips; t = t.parent) chain.Insert(0, t);
+                if (chain.Count > 0 && chain[0].parent == hips)
+                {
+                    bones["Spine"] = chain[0];
+                    if (chain.Count > 1) bones["Spine2"] = chain[chain.Count - 1];
+                    if (chain.Count > 2) bones["Spine1"] = chain[1];
+                }
+            }
+
+            return bones;
+        }
+
         /// <summary>Bone segments used to fit the skeleton onto the mesh: each one against the vertices it moves most.</summary>
         private static readonly (string bone, string child)[] FitSegments =
         {
@@ -144,7 +191,7 @@ namespace Zeldexile.Characters
         /// middle with the centroid of the vertices it drives, and gives the renderer a copy of the mesh with the
         /// corrected bindposes. A model whose skeleton already lies inside its mesh is left alone.
         /// </summary>
-        private static void RepairBindposes(SkinnedMeshRenderer skin)
+        private static void RepairBindposes(SkinnedMeshRenderer skin, Dictionary<Transform, string> names)
         {
             var mesh = skin.sharedMesh;
             if (mesh == null) return;
@@ -161,11 +208,8 @@ namespace Zeldexile.Characters
             if (bindposes.Length != bones.Length) return;
             var index = new Dictionary<string, int>();
             for (var i = 0; i < bones.Length; i++)
-            {
-                if (bones[i] == null) continue;
-                var colon = bones[i].name.LastIndexOf(':');
-                index[colon < 0 ? bones[i].name : bones[i].name.Substring(colon + 1)] = i;
-            }
+                if (bones[i] != null && names.TryGetValue(bones[i], out var name))
+                    index[name] = i;
 
             Vector3 Bind(int i) => bindposes[i].inverse.GetColumn(3);
             if (!index.TryGetValue("Hips", out var hipsIndex) || !index.TryGetValue("Head", out var headIndex)) return;
