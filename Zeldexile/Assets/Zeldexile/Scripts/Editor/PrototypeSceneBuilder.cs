@@ -21,9 +21,27 @@ namespace Zeldexile.EditorTools
 
             System.IO.Directory.CreateDirectory("Assets/Zeldexile/Scenes");
             EditorSceneManager.SaveScene(scene, ScenePath);
-            EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(ScenePath, true) };
+            BuildShowcase();
+            EditorBuildSettings.scenes = new[]
+            {
+                new EditorBuildSettingsScene(ScenePath, true),
+                new EditorBuildSettingsScene(ShowcasePath, true)
+            };
             AssetDatabase.SaveAssets();
-            Debug.Log($"Zeldexile: cena salva em {ScenePath}");
+            Debug.Log($"Zeldexile: cenas salvas em {ScenePath} e {ShowcasePath}");
+        }
+
+        public const string ShowcasePath = "Assets/Zeldexile/Scenes/Showcase.unity";
+
+        /// <summary>Hero showcase: the character going through every action on a stage, with an orbiting camera.</summary>
+        [MenuItem("Zeldexile/Criar cena de vitrine do herói")]
+        public static void BuildShowcase()
+        {
+            var scene = EditorSceneManager.NewScene(NewSceneSetup.DefaultGameObjects, NewSceneMode.Single);
+            new GameObject("Vitrine do herói").AddComponent<CharacterShowcase>();
+            System.IO.Directory.CreateDirectory("Assets/Zeldexile/Scenes");
+            EditorSceneManager.SaveScene(scene, ShowcasePath);
+            Debug.Log($"Zeldexile: vitrine salva em {ShowcasePath}");
         }
 
         /// <summary>Saved material with GPU instancing on, so builds keep the grass shader's instanced variant.</summary>

@@ -20,30 +20,28 @@ namespace Zeldexile.Characters
         /// <summary>True while a menu that kneels the hero is open (cooking, prayer).</summary>
         public System.Func<bool> Kneeling;
 
-        private readonly Dictionary<string, Renderer[]> _parts = new Dictionary<string, Renderer[]>();
+        private readonly Dictionary<GearPart, List<Renderer>> _parts = new Dictionary<GearPart, List<Renderer>>();
         private Transform _bladeRoot;
-
-        private static readonly string[] SwordBack = { "~Arma Costas", "~Arma Costas Guarda", "~Arma Costas Punho" };
-        private static readonly string[] SwordHand = { "~Arma@", "~Arma Guarda", "~Arma Punho" };
-        private static readonly string[] ShieldBack = { "~Escudo Costas", "~Escudo Costas Aro", "~Escudo Costas Umbo" };
-        private static readonly string[] ShieldHand = { "~Escudo@", "~Escudo Aro", "~Escudo Umbo" };
-        private static readonly string[] BowBack = { "~Arco Costas", "~Arco Costas Corda" };
-        private static readonly string[] BowHand = { "~Arco@", "~Arco Corda" };
-        private static readonly string[] Scabbard = { "~Bainha" };
 
         private void Start()
         {
             if (Rig == null) return;
-            var all = Rig.GetComponentsInChildren<Renderer>(true);
-            foreach (var key in new[] { SwordBack, SwordHand, ShieldBack, ShieldHand, BowBack, BowHand, Scabbard })
-            foreach (var pattern in key)
+            foreach (var r in Rig.GetComponentsInChildren<Renderer>(true))
             {
-                var list = new List<Renderer>();
-                foreach (var r in all)
-                    if (r.name.Contains(pattern))
-                        list.Add(r);
-                _parts[pattern] = list.ToArray();
-                if (pattern == "~Arma@" && list.Count > 0) _bladeRoot = list[0].transform;
+                var part = CharacterRig.Classify(r.name);
+                if (part == GearPart.None) continue;
+                if (!_parts.TryGetValue(part, out var list)) _parts[part] = list = new List<Renderer>();
+                list.Add(r);
+            }
+
+            // The blade scales by weapon class around the fist, so every sword part shares one pivot.
+            if (_parts.TryGetValue(GearPart.SwordHand, out var sword) && sword.Count > 0)
+            {
+                var arm = sword[0].transform.parent;
+                _bladeRoot = new GameObject("Empunhadura").transform;
+                _bladeRoot.SetParent(arm, false);
+                _bladeRoot.localPosition = new Vector3(0f, -0.62f, 0f);
+                foreach (var r in sword) r.transform.SetParent(_bladeRoot, true);
             }
         }
 
@@ -59,21 +57,20 @@ namespace Zeldexile.Characters
             var hasShield = Character.Shield != null && Character.Shield.IsUsable;
             var hasBow = Character.Bow != null && Character.Bow.IsUsable;
 
-            Show(Scabbard, true);
-            Show(SwordHand, hasWeapon && drawn);
-            Show(SwordBack, hasWeapon && !drawn);
-            Show(ShieldHand, hasShield && (guarding || drawn));
-            Show(ShieldBack, hasShield && !(guarding || drawn));
-            Show(BowHand, hasBow && aiming);
-            Show(BowBack, hasBow && !aiming);
+            Show(GearPart.SwordHand, hasWeapon && drawn);
+            Show(GearPart.SwordBack, hasWeapon && !drawn);
+            Show(GearPart.ShieldHand, hasShield && (guarding || drawn));
+            Show(GearPart.ShieldBack, hasShield && !(guarding || drawn));
+            Show(GearPart.BowHand, hasBow && aiming);
+            Show(GearPart.BowBack, hasBow && !aiming);
 
             if (_bladeRoot != null && hasWeapon)
             {
                 // The same blade mesh reads as sword, greatsword or spear by its proportions.
                 switch (Character.Weapon.Class)
                 {
-                    case WeaponClass.TwoHanded: _bladeRoot.localScale = new Vector3(1.7f, 1.2f, 1.6f); break;
-                    case WeaponClass.Spear: _bladeRoot.localScale = new Vector3(0.45f, 1.9f, 0.9f); break;
+                    case WeaponClass.TwoHanded: _bladeRoot.localScale = new Vector3(1.6f, 1.35f, 1.35f); break;
+                    case WeaponClass.Spear: _bladeRoot.localScale = new Vector3(0.5f, 1.8f, 1.8f); break;
                     default: _bladeRoot.localScale = Vector3.one; break;
                 }
             }
@@ -84,16 +81,16 @@ namespace Zeldexile.Characters
                 Animator.Aiming = aiming;
                 Animator.Kneeling = kneeling;
                 Animator.Armed = hasWeapon && drawn;
+                Animator.ShieldInHand = hasShield && (guarding || drawn);
             }
         }
 
-        private void Show(string[] patterns, bool visible)
+        private void Show(GearPart part, bool visible)
         {
-            foreach (var p in patterns)
-                if (_parts.TryGetValue(p, out var renderers))
-                    foreach (var r in renderers)
-                        if (r != null && r.enabled != visible)
-                            r.enabled = visible;
+            if (!_parts.TryGetValue(part, out var renderers)) return;
+            foreach (var r in renderers)
+                if (r != null && r.enabled != visible)
+                    r.enabled = visible;
         }
     }
 }

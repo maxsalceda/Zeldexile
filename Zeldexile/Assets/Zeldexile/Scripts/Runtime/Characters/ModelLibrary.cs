@@ -29,7 +29,7 @@ namespace Zeldexile.Characters
         };
 
         /// <summary>Slots that read better without a contour (thin or ground-hugging pieces).</summary>
-        private static readonly HashSet<string> NoOutline = new HashSet<string> { "grass", "dark" };
+        private static readonly HashSet<string> NoOutline = new HashSet<string> { "grass", "dark", "seam", "wooddark", "iris", "nose" };
 
         public static bool Has(string path) => Load(path) != null;
 

@@ -25,7 +25,7 @@ namespace Zeldexile.EditorTools
 
             var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
             {
-                scenes = new[] { PrototypeSceneBuilder.ScenePath },
+                scenes = new[] { PrototypeSceneBuilder.ScenePath, PrototypeSceneBuilder.ShowcasePath },
                 locationPathName = Output,
                 target = BuildTarget.StandaloneWindows64,
                 options = BuildOptions.None

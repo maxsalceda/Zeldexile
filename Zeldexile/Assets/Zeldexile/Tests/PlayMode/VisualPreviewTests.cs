@@ -59,78 +59,108 @@ namespace Zeldexile.Tests
             atmosphere.Set(10f, WeatherKind.Clear);
             Object.Destroy(shot.gameObject);
 
-            // Pose sheet: the hero in every locomotion state, held stance and one-shot action, plus a creature.
+            // Hero sheets, compared side by side with output/imagegen/aventureiro-anime-seis-poses.png.
             var sheet = new GameObject("Folha de poses");
             sheet.transform.position = new Vector3(0f, 200f, 0f);
-            var floor = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            floor.transform.SetParent(sheet.transform, false);
-            floor.transform.localPosition = new Vector3(0f, -0.5f, 0f);
-            floor.transform.localScale = new Vector3(22f, 1f, 10f);
-            floor.GetComponent<Renderer>().sharedMaterial = World.Palette.Solid(World.Palette.Ground);
+            var backdrop = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            backdrop.transform.SetParent(sheet.transform, false);
+            backdrop.transform.localPosition = new Vector3(0f, -0.5f, 0f);
+            backdrop.transform.localScale = new Vector3(40f, 1f, 40f);
+            backdrop.GetComponent<Renderer>().sharedMaterial = World.Palette.Solid(new Color(0.86f, 0.86f, 0.84f));
+            var cam = new GameObject("Câmera de poses").AddComponent<Camera>();
+            cam.enabled = false;
+            cam.clearFlags = CameraClearFlags.SolidColor;
+            cam.backgroundColor = new Color(0.93f, 0.93f, 0.92f);
+            cam.fieldOfView = 30f;
 
-            var poses = new (Locomotion loco, Vector3 velocity, ActionKind action, float at, string stance)[]
+            // 1) The reference's six poses, in its 3 x 2 layout: rest 3/4, walking profile, raised shield,
+            //    sword extension, crouch, rear 3/4. Character yaw 180 faces the camera.
+            var mock = new (Locomotion loco, Vector3 velocity, ActionKind action, float at, string stance, float yaw)[]
             {
-                (Locomotion.Grounded, Vector3.zero, ActionKind.None, 0f, ""),
-                (Locomotion.Grounded, new Vector3(0f, 0f, 7f), ActionKind.None, 0f, ""),
+                (Locomotion.Grounded, Vector3.zero, ActionKind.None, 0f, "armed", 150f),
+                (Locomotion.Grounded, new Vector3(0f, 0f, 4f), ActionKind.None, 0f, "armed", 90f),
+                (Locomotion.Grounded, Vector3.zero, ActionKind.None, 0f, "guard", 150f),
+                (Locomotion.Grounded, Vector3.zero, ActionKind.Thrust, 0.62f, "armed", 235f),
+                (Locomotion.Grounded, Vector3.zero, ActionKind.Pickup, 0.5f, "armed", 160f),
+                (Locomotion.Grounded, Vector3.zero, ActionKind.None, 0f, "armed", 330f),
+            };
+            var heroes = new GameObject[mock.Length];
+            for (var i = 0; i < mock.Length; i++)
+            {
+                var col = i % 3;
+                var row = i / 3;
+                heroes[i] = Hero(sheet.transform, new Vector3(-3.6f + col * 3.6f, row == 0 ? 2.5f : -0.3f, 0f), mock[i].yaw,
+                    mock[i].loco, mock[i].velocity, mock[i].action, mock[i].at, mock[i].stance);
+            }
+
+            // Orthographic, nearly level, like a character sheet; rows are spread in depth and lifted apart.
+            // A plain sheet with no floor: the reference has no ground either.
+            backdrop.SetActive(false);
+            cam.orthographic = true;
+            cam.orthographicSize = 3.15f;
+            cam.transform.position = sheet.transform.position + new Vector3(0f, 2.0f, -14f);
+            cam.transform.rotation = Quaternion.identity;
+            for (var i = 0; i < 40; i++) yield return null;
+            Save(cam, "preview-hero-mockup.png", 1536, 1024);
+            foreach (var h in heroes) Object.Destroy(h);
+            cam.orthographic = false;
+            backdrop.SetActive(true);
+
+            // 2) Turnaround at rest with the gear in hand: front, 3/4, side, back.
+            var yaws = new[] { 180f, 135f, 90f, 0f };
+            heroes = new GameObject[yaws.Length];
+            for (var i = 0; i < yaws.Length; i++)
+                heroes[i] = Hero(sheet.transform, new Vector3(-3.3f + i * 2.2f, 0f, 0f), yaws[i], Locomotion.Grounded,
+                    Vector3.zero, ActionKind.None, 0f, "armed");
+            cam.transform.position = sheet.transform.position + new Vector3(0f, 1.15f, -8.6f);
+            cam.transform.rotation = Quaternion.Euler(2f, 0f, 0f);
+            for (var i = 0; i < 40; i++) yield return null;
+            Save(cam, "preview-hero-turnaround.png", 1600, 700);
+            foreach (var h in heroes) Object.Destroy(h);
+
+            // 3) Close-up of the face and hair, three-quarter.
+            var face = Hero(sheet.transform, Vector3.zero, 160f, Locomotion.Grounded, Vector3.zero, ActionKind.None, 0f, "");
+            cam.transform.position = sheet.transform.position + new Vector3(0.05f, 1.62f, -1.25f);
+            cam.transform.rotation = Quaternion.Euler(2f, 0f, 0f);
+            for (var i = 0; i < 20; i++) yield return null;
+            Save(cam, "preview-hero-face.png", 900, 900);
+            Object.Destroy(face);
+
+            // 4) Every remaining action, for the animation review (plus a creature for scale).
+            var actions = new (Locomotion loco, Vector3 velocity, ActionKind action, float at, string stance)[]
+            {
+                (Locomotion.Grounded, new Vector3(0f, 0f, 7f), ActionKind.None, 0f, "armed"),
+                (Locomotion.Grounded, Vector3.zero, ActionKind.SlashLight, 0.55f, "armed"),
+                (Locomotion.Grounded, Vector3.zero, ActionKind.SlashHeavy, 0.55f, "armed"),
+                (Locomotion.Grounded, Vector3.zero, ActionKind.Throw, 0.5f, "armed"),
+                (Locomotion.Grounded, Vector3.zero, ActionKind.Parry, 0.3f, "guard"),
+                (Locomotion.Grounded, Vector3.zero, ActionKind.None, 0f, "aim"),
+                (Locomotion.Grounded, Vector3.zero, ActionKind.Hurt, 0.2f, "armed"),
+                (Locomotion.Grounded, Vector3.zero, ActionKind.None, 0f, "kneel"),
                 (Locomotion.Airborne, new Vector3(0f, 3f, 2f), ActionKind.None, 0f, ""),
                 (Locomotion.Climbing, new Vector3(0f, 2f, 0f), ActionKind.None, 0f, ""),
                 (Locomotion.Gliding, new Vector3(0f, -1f, 6f), ActionKind.None, 0f, ""),
                 (Locomotion.Swimming, new Vector3(0f, 0f, 2f), ActionKind.None, 0f, ""),
-                (Locomotion.Grounded, Vector3.zero, ActionKind.SlashLight, 0.55f, ""),
-                (Locomotion.Grounded, Vector3.zero, ActionKind.SlashHeavy, 0.5f, ""),
-                (Locomotion.Grounded, Vector3.zero, ActionKind.Thrust, 0.5f, ""),
-                (Locomotion.Grounded, Vector3.zero, ActionKind.Throw, 0.5f, ""),
-                (Locomotion.Grounded, Vector3.zero, ActionKind.None, 0f, "aim"),
-                (Locomotion.Grounded, Vector3.zero, ActionKind.None, 0f, "guard"),
-                (Locomotion.Grounded, Vector3.zero, ActionKind.Pickup, 0.5f, ""),
-                (Locomotion.Grounded, Vector3.zero, ActionKind.None, 0f, "kneel"),
-                (Locomotion.Grounded, Vector3.zero, ActionKind.Hurt, 0.2f, ""),
-                (Locomotion.Grounded, new Vector3(0f, 0f, 4f), ActionKind.None, 0f, "cascudo"),
             };
-            for (var i = 0; i < poses.Length; i++)
-            {
-                var holder = new GameObject("Pose " + i);
-                holder.transform.SetParent(sheet.transform, false);
-                holder.transform.localPosition = new Vector3(-8.75f + (i % 8) * 2.5f, poses[i].loco == Locomotion.Swimming ? 0.6f : 0f, i < 8 ? 4.5f : -2.5f);
-                // Three-quarter view from the hero's left, so forward arms and swings read as such.
-                holder.transform.localRotation = Quaternion.Euler(0f, 115f, 0f);
-                var animator = holder.AddComponent<CharacterAnimator>();
-                var creature = poses[i].stance == "cascudo";
-                animator.Rig = CharacterRig.Build(holder.transform, creature ? RigStyle.ForTier(Domain.EnemyTier.Blue) : RigStyle.Hero);
-                animator.Source = new FixedSource { Locomotion = poses[i].loco, Velocity = poses[i].velocity };
-                animator.Guarding = poses[i].stance == "guard";
-                animator.Aiming = poses[i].stance == "aim";
-                animator.Kneeling = poses[i].stance == "kneel";
-                animator.Armed = poses[i].stance == "guard" || poses[i].action == ActionKind.SlashLight ||
-                                 poses[i].action == ActionKind.SlashHeavy || poses[i].action == ActionKind.Thrust;
-                if (poses[i].action != ActionKind.None) animator.Hold(poses[i].action, poses[i].at);
-                if (!creature)
-                {
-                    // Show the gear the stance calls for, as the presenter would in play.
-                    foreach (var r in animator.Rig.GetComponentsInChildren<Renderer>(true))
-                    {
-                        var name = r.name;
-                        var inHand = poses[i].action == ActionKind.SlashLight || poses[i].action == ActionKind.SlashHeavy ||
-                                     poses[i].action == ActionKind.Thrust || poses[i].action == ActionKind.Throw || poses[i].stance == "guard";
-                        if (name.Contains("~Arma@") || name.Contains("~Arma Guarda") || name.Contains("~Arma Punho")) r.enabled = inHand;
-                        if (name.Contains("~Arma Costas")) r.enabled = !inHand;
-                        if (name.Contains("~Escudo@") || name.Contains("~Escudo Aro") || name.Contains("~Escudo Umbo")) r.enabled = poses[i].stance == "guard";
-                        if (name.Contains("~Escudo Costas")) r.enabled = poses[i].stance != "guard";
-                        if (name.Contains("~Arco@") || name.Contains("~Arco Corda")) r.enabled = poses[i].stance == "aim";
-                        if (name.Contains("~Arco Costas")) r.enabled = poses[i].stance != "aim";
-                    }
-                }
-            }
-
-            var cam = new GameObject("Câmera de poses").AddComponent<Camera>();
-            cam.transform.position = sheet.transform.position + new Vector3(0f, 4.6f, -10f);
-            cam.transform.rotation = Quaternion.Euler(20f, 0f, 0f);
-            cam.fieldOfView = 54f;
-            cam.enabled = false;
-
+            heroes = new GameObject[actions.Length + 1];
+            for (var i = 0; i < actions.Length; i++)
+                heroes[i] = Hero(sheet.transform, new Vector3(-7.5f + (i % 6) * 3f, actions[i].loco == Locomotion.Swimming ? 0.6f : 0f, i < 6 ? 3.5f : 0f),
+                    125f, actions[i].loco, actions[i].velocity, actions[i].action, actions[i].at, actions[i].stance);
+            var creature = new GameObject("Criatura");
+            creature.transform.SetParent(sheet.transform, false);
+            creature.transform.localPosition = new Vector3(9f, 0f, 1.5f);
+            creature.transform.localRotation = Quaternion.Euler(0f, 210f, 0f);
+            var ca = creature.AddComponent<CharacterAnimator>();
+            ca.Rig = CharacterRig.Build(creature.transform, RigStyle.ForTier(Domain.EnemyTier.Blue));
+            ca.Source = new FixedSource { Locomotion = Locomotion.Grounded, Velocity = Vector3.zero };
+            heroes[actions.Length] = creature;
+            cam.transform.position = sheet.transform.position + new Vector3(0.6f, 6.4f, -14.5f);
+            cam.transform.rotation = Quaternion.Euler(18f, 0f, 0f);
+            cam.fieldOfView = 46f;
             for (var i = 0; i < 40; i++) yield return null;
             Save(cam, "preview-poses.png");
 
+            Object.Destroy(cam.gameObject);
             Object.Destroy(sheet);
             Object.Destroy(cam.gameObject);
             Object.Destroy(world);
@@ -141,10 +171,46 @@ namespace Zeldexile.Tests
             }
         }
 
-        private static void Save(Camera camera, string fileName)
+        /// <summary>A hero rig in a pose, with the gear shown as HeroPresenter would show it in play.</summary>
+        private static GameObject Hero(Transform parent, Vector3 at, float yaw, Locomotion loco, Vector3 velocity,
+            ActionKind action, float progress, string stance)
+        {
+            var holder = new GameObject("Herói");
+            holder.transform.SetParent(parent, false);
+            holder.transform.localPosition = at;
+            holder.transform.localRotation = Quaternion.Euler(0f, yaw, 0f);
+            var animator = holder.AddComponent<CharacterAnimator>();
+            animator.Rig = CharacterRig.Build(holder.transform, RigStyle.Hero);
+            animator.Source = new FixedSource { Locomotion = loco, Velocity = velocity };
+            var guard = stance == "guard";
+            var armed = stance == "armed" || guard;
+            animator.Guarding = guard;
+            animator.Aiming = stance == "aim";
+            animator.Kneeling = stance == "kneel";
+            animator.Armed = armed;
+            animator.ShieldInHand = armed;
+            if (action != ActionKind.None) animator.Hold(action, progress);
+            foreach (var r in animator.Rig.GetComponentsInChildren<Renderer>(true))
+            {
+                switch (CharacterRig.Classify(r.name))
+                {
+                    case GearPart.SwordHand: r.enabled = armed; break;
+                    case GearPart.SwordBack: r.enabled = !armed; break;
+                    case GearPart.ShieldHand: r.enabled = armed; break;
+                    case GearPart.ShieldBack: r.enabled = !armed; break;
+                    // The starting kit has no bow, as in the reference: it only shows while aiming.
+                    case GearPart.BowHand: r.enabled = stance == "aim"; break;
+                    case GearPart.BowBack: r.enabled = false; break;
+                }
+            }
+
+            return holder;
+        }
+
+        private static void Save(Camera camera, string fileName, int width = 1280, int height = 720)
         {
             Assert.That(camera, Is.Not.Null);
-            var rt = new RenderTexture(1280, 720, 24);
+            var rt = new RenderTexture(width, height, 24);
             var previous = camera.targetTexture;
             camera.targetTexture = rt;
             camera.Render();

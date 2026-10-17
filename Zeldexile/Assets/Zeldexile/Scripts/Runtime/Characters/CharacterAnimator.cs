@@ -61,6 +61,16 @@ namespace Zeldexile.Characters
         public bool Kneeling { get; set; }
         /// <summary>Sword in hand: the right arm stays raised so the blade never drags on the ground.</summary>
         public bool Armed { get; set; }
+        /// <summary>Shield on the left forearm: at rest it hangs at the side, face out, as in the reference.</summary>
+        public bool ShieldInHand { get; set; }
+
+        /// <summary>
+        /// Left arm brought forward and across the chest. The forearm shield's face (the arm's -X side) then
+        /// turns toward the threat, slightly to the left, covering the torso while the face stays visible
+        /// (reference pose 3). LookRotation: the arm's local Z goes up, its local Y opposite to the arm.
+        /// </summary>
+        private static readonly Quaternion ShieldGuardArm =
+            Quaternion.LookRotation(Vector3.up, -new Vector3(0.85f, -0.15f, 0.5f));
 
         public ActionKind CurrentAction { get; private set; }
         public float ActionProgress => _actionDuration <= 0f ? 1f : Mathf.Clamp01((Time.time - _actionStart) / _actionDuration);
@@ -294,8 +304,8 @@ namespace Zeldexile.Characters
                 Hips = E(0f, 12f),
                 Torso = E(10f, -14f),
                 Head = E(-6f, 10f),
-                ArmL = E(-78f, 22f, -10f),
-                ArmR = E(-48f, -6f, 26f),
+                ArmL = ShieldGuardArm,
+                ArmR = E(-26f, -10f, 34f),
                 LegL = E(-22f + step),
                 LegR = E(-22f - step),
                 HipsOffsetY = -0.08f

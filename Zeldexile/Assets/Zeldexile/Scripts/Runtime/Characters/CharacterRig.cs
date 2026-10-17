@@ -32,24 +32,38 @@ namespace Zeldexile.Characters
                 case "metal": return new Color(0.75f, 0.75f, 0.78f);
                 case "steel": return new Color(0.80f, 0.82f, 0.88f);
                 case "dark": return new Color(0.08f, 0.07f, 0.10f);
-                case "cream": return new Color(0.93f, 0.90f, 0.80f);
-                case "leather": return new Color(0.42f, 0.28f, 0.18f);
-                case "wood": return new Color(0.55f, 0.38f, 0.22f);
+                case "cream": return new Color(0.86f, 0.79f, 0.68f);
+                case "leather": return new Color(0.45f, 0.29f, 0.18f);
+                case "wood": return new Color(0.58f, 0.37f, 0.22f);
+                case "wooddark": return new Color(0.40f, 0.25f, 0.15f);
+                case "shirt": return new Color(0.20f, 0.20f, 0.23f);
+                case "glove": return new Color(0.22f, 0.20f, 0.20f);
+                case "brass": return new Color(0.85f, 0.66f, 0.28f);
+                case "grip": return new Color(0.25f, 0.18f, 0.14f);
+                case "kneepad": return new Color(0.50f, 0.48f, 0.50f);
+                case "seam": return Pants * 0.72f;
+                case "iris": return new Color(0.62f, 0.36f, 0.16f);
+                case "sole": return new Color(0.18f, 0.13f, 0.10f);
+                case "bag": return new Color(0.68f, 0.47f, 0.30f);
+                case "nose": return Skin * 0.92f;
                 default: return Color.white;
             }
         }
 
-        /// <summary>The hero: blond, pointed ears, sky-blue tunic over a cream shirt, tan trousers, brown boots.</summary>
+        /// <summary>
+        /// The hero: the original young adventurer of output/imagegen/aventureiro-anime-seis-poses.png.
+        /// Warm tan skin, auburn hair, cropped teal jacket with ochre trim, charcoal shirt, slate trousers,
+        /// brown boots. Colours are the reference's base areas, not its highlights or shadows.
+        /// </summary>
         public static RigStyle Hero => new RigStyle
         {
-            Skin = new Color(0.96f, 0.80f, 0.66f),
-            Hair = new Color(0.95f, 0.80f, 0.38f),
-            Tunic = new Color(0.30f, 0.60f, 0.88f),
-            Pants = new Color(0.78f, 0.68f, 0.50f),
-            Boots = new Color(0.40f, 0.27f, 0.18f),
-            Accent = new Color(0.92f, 0.78f, 0.30f),
+            Skin = new Color(0.93f, 0.70f, 0.52f),
+            Hair = new Color(0.50f, 0.22f, 0.15f),
+            Tunic = new Color(0.18f, 0.42f, 0.48f),
+            Pants = new Color(0.30f, 0.31f, 0.37f),
+            Boots = new Color(0.50f, 0.32f, 0.20f),
+            Accent = new Color(0.80f, 0.62f, 0.28f),
             Scale = 1f,
-            Ponytail = true,
             Model = "heroi"
         };
 
@@ -77,6 +91,17 @@ namespace Zeldexile.Characters
             Horns = true,
             Model = "cascudo"
         };
+    }
+
+    public enum GearPart
+    {
+        None,
+        SwordHand,
+        SwordBack,
+        ShieldHand,
+        ShieldBack,
+        BowHand,
+        BowBack
     }
 
     /// <summary>
@@ -139,15 +164,30 @@ namespace Zeldexile.Characters
             return rig;
         }
 
-        /// <summary>Gear held in the hands starts hidden; HeroPresenter shows it when drawn, raised or aimed.</summary>
-        public static readonly string[] HandGearParts =
-            { "~Arma@", "~Arma Guarda", "~Arma Punho", "~Escudo@", "~Escudo Aro", "~Escudo Umbo", "~Arco@", "~Arco Corda" };
+        /// <summary>
+        /// Which piece of gear a mesh belongs to, from its name ("Joint~Part@slot"). Each item exists twice in
+        /// the model: stowed ("... Costas ...") and in the hands. Exactly one of the two is drawn at a time.
+        /// </summary>
+        public static GearPart Classify(string meshName)
+        {
+            var tilde = meshName.IndexOf('~');
+            if (tilde < 0) return GearPart.None;
+            var part = meshName.Substring(tilde + 1);
+            var stowed = part.Contains("Costas");
+            if (part.StartsWith("Arma")) return stowed ? GearPart.SwordBack : GearPart.SwordHand;
+            if (part.StartsWith("Escudo")) return stowed ? GearPart.ShieldBack : GearPart.ShieldHand;
+            if (part.StartsWith("Arco")) return stowed ? GearPart.BowBack : GearPart.BowHand;
+            return GearPart.None;
+        }
 
+        public static bool IsHandGear(GearPart part) =>
+            part == GearPart.SwordHand || part == GearPart.ShieldHand || part == GearPart.BowHand;
+
+        /// <summary>Gear held in the hands starts hidden; HeroPresenter shows it when drawn, raised or aimed.</summary>
         private static void HideHandGear(CharacterRig rig)
         {
             foreach (var r in rig.GetComponentsInChildren<Renderer>(true))
-            foreach (var pattern in HandGearParts)
-                if (r.name.Contains(pattern))
+                if (IsHandGear(Classify(r.name)))
                     r.enabled = false;
         }
 

@@ -10,12 +10,22 @@ namespace Zeldexile.Gameplay
     /// </summary>
     public sealed class BuildCapture : MonoBehaviour
     {
+        /// <summary>"Zeldexile.exe -vitrine" opens the hero showcase instead of the island.</summary>
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+        private static void OpenShowcase()
+        {
+            if (Array.IndexOf(Environment.GetCommandLineArgs(), "-vitrine") < 0) return;
+            UnityEngine.SceneManagement.SceneManager.LoadScene("Showcase");
+        }
+
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void Install()
         {
             var args = Environment.GetCommandLineArgs();
             var index = Array.IndexOf(args, "-zxshot");
             if (index < 0 || index + 1 >= args.Length) return;
+            // A capture must keep running even if its window never gets focus.
+            Application.runInBackground = true;
             var go = new GameObject("Captura de build");
             DontDestroyOnLoad(go);
             go.AddComponent<BuildCapture>().StartCoroutine(Capture(args[index + 1]));
