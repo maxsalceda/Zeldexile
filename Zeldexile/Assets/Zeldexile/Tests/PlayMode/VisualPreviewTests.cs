@@ -346,6 +346,88 @@ namespace Zeldexile.Tests
             Object.Destroy(hero);
         }
 
+        /// <summary>
+        /// The captured standing loop: the hero stands still, seen from the front and from the side, in
+        /// <c>frames</c> frames spread evenly over one loop. Saved as Logs/preview-idle.png, to set beside the
+        /// source clip rendered at the same instants (Tools/Blender/render_clip_reference.py).
+        /// </summary>
+        [UnityTest]
+        public IEnumerator RenderIdleSheet()
+        {
+            const int frames = 8, cellW = 240, cellH = 360;
+            var stage = new GameObject("Folha do idle");
+            stage.transform.position = new Vector3(0f, 600f, 0f);
+            var light = new GameObject("Luz").AddComponent<Light>();
+            light.type = LightType.Directional;
+            light.transform.rotation = Quaternion.Euler(40f, -30f, 0f);
+            light.enabled = Object.FindObjectsByType<Light>(FindObjectsSortMode.None).Length == 1;
+            var cam = new GameObject("Câmera do idle").AddComponent<Camera>();
+            cam.enabled = false;
+            cam.clearFlags = CameraClearFlags.SolidColor;
+            cam.backgroundColor = new Color(0.93f, 0.93f, 0.92f);
+            cam.orthographic = true;
+            cam.orthographicSize = 1.05f;
+            cam.transform.position = stage.transform.position + new Vector3(0f, 0.95f, -6f);
+
+            var hero = Hero(stage.transform, Vector3.zero, 180f, Locomotion.Grounded, Vector3.zero, ActionKind.None, 0f, "");
+            var animator = hero.GetComponent<CharacterAnimator>();
+            var idle = animator.Rig.Idle;
+            Assert.That(idle, Is.Not.Null, "RigStyle.Hero.IdleClip did not load.");
+            Debug.Log($"Idle capturado: {idle.Duration:F2} s");
+            // The clip stands in a fighting stance: chest and head turned and bowed. It comes in at 1/100 scale,
+            // where a careless LookRotation returns no rotation and stands the trunk up square.
+            var first = idle.Sample(0f);
+            Assert.That(Quaternion.Angle(Quaternion.identity, first.Torso), Is.GreaterThan(10f), "Idle chest lost its turn.");
+            Assert.That(Quaternion.Angle(Quaternion.identity, first.Head), Is.GreaterThan(3f), "Idle head lost its turn.");
+
+            // The sheet runs at 8x: one 16 s loop in 2 s. Two rows: front, then side (turned 90 degrees).
+            var sheet = new Texture2D(frames * cellW, 2 * cellH, TextureFormat.RGB24, false);
+            var hands = new Vector3[frames];
+            var oldScale = Time.timeScale;
+            Time.timeScale = 8f;
+            try
+            {
+                for (var row = 0; row < 2; row++)
+                {
+                    hero.transform.localRotation = Quaternion.Euler(0f, row == 0 ? 180f : 90f, 0f);
+                    var start = animator.IdleTime - animator.IdleTime % idle.Duration + idle.Duration;
+                    for (var f = 0; f < frames; f++)
+                    {
+                        var at = start + idle.Duration * f / frames;
+                        while (animator.IdleTime < at) yield return null;
+                        if (row == 0) hands[f] = hero.transform.InverseTransformPoint(animator.Rig.WristL.position);
+                        var rt = new RenderTexture(cellW, cellH, 24);
+                        cam.targetTexture = rt;
+                        cam.Render();
+                        RenderTexture.active = rt;
+                        sheet.ReadPixels(new Rect(0, 0, cellW, cellH), f * cellW, (1 - row) * cellH);
+                        RenderTexture.active = null;
+                        cam.targetTexture = null;
+                        rt.Release();
+                    }
+                }
+            }
+            finally
+            {
+                Time.timeScale = oldScale;
+            }
+
+            sheet.Apply();
+            var dir = Path.Combine(Application.dataPath, "..", "Logs");
+            Directory.CreateDirectory(dir);
+            File.WriteAllBytes(Path.Combine(dir, "preview-idle.png"), sheet.EncodeToPNG());
+
+            // The loop is playing: the left hand travels over it (the clip sways it about 2 cm).
+            var travel = 0f;
+            for (var f = 1; f < frames; f++) travel = Mathf.Max(travel, (hands[f] - hands[0]).magnitude);
+            Assert.That(travel, Is.GreaterThan(0.005f), "The hero stands frozen: the idle clip is not playing.");
+
+            Object.Destroy(hero);
+            Object.Destroy(cam.gameObject);
+            Object.Destroy(light.gameObject);
+            Object.Destroy(stage);
+        }
+
         /// <summary>A hero rig in a pose, with the gear shown as HeroPresenter would show it in play.</summary>
         private static GameObject Hero(Transform parent, Vector3 at, float yaw, Locomotion loco, Vector3 velocity,
             ActionKind action, float progress, string stance)

@@ -37,6 +37,8 @@ namespace Zeldexile.Characters
             foreach (var animator in model.GetComponentsInChildren<Animator>(true)) Object.Destroy(animator);
 
             var bones = CanonicalBones(model.transform);
+            // The skeleton as imported (rest pose, before it is straightened below), for the bone-for-bone clips.
+            var skeleton = HeroSkeleton.Read(model.transform, "Models/Skinned/" + style.SkinnedModel + "_repouso");
 
             var skins = model.GetComponentsInChildren<SkinnedMeshRenderer>(true);
             if (skins.Length == 0 || !bones.ContainsKey("Hips") || !bones.ContainsKey("LeftArm") || !bones.ContainsKey("Head"))
@@ -136,6 +138,7 @@ namespace Zeldexile.Characters
             BorrowGear(rig, style);
             rig.HipsHeight = rig.Hips.localPosition.y;
             rig.FindContacts(0f);
+            rig.Idle = MotionClip.Load(style.IdleClip);
             rig.Walk = MotionClip.Load(style.WalkClip);
             rig.Run = MotionClip.Load(style.RunClip);
             rig.Slash = MotionClip.Load(style.SlashClip, 0.35f);
@@ -149,6 +152,19 @@ namespace Zeldexile.Characters
             rig.Vault = MotionClip.Load(style.VaultClip);
             rig.Kick = MotionClip.Load(style.KickClip, 0.35f);
             rig.Climb = MotionClip.Load(style.ClimbClip);
+            if (skeleton != null)
+            {
+                var direct = root.AddComponent<DirectLayer>();
+                direct.Skeleton = skeleton;
+                direct.Driver = driver;
+                rig.Direct = direct;
+                rig.Sprint = direct.Load(style.SprintClip);
+                rig.BasicAttack1 = direct.Load(style.BasicAttack1Clip);
+                rig.BasicAttack2 = direct.Load(style.BasicAttack2Clip);
+                rig.DrawSword = direct.Load(style.DrawSwordClip);
+                rig.SheatheSword = direct.Load(style.SheatheSwordClip);
+            }
+
             return rig;
         }
 
@@ -512,6 +528,33 @@ namespace Zeldexile.Characters
         internal void AddHand(Transform curl, List<SkinnedHero.FingerChain> fingers) => _hands.Add((curl, fingers));
 
         private static readonly float[] PhalanxShare = { 0.85f, 1.1f, 0.75f };
+
+        private readonly List<Vector3> _jointRest = new List<Vector3>();
+        private bool _followed;
+
+        /// <summary>
+        /// The other way round, for <see cref="DirectLayer"/>: every joint takes its bone's position and rotation, so
+        /// the gear hung on the joints stays in the clip's hands. Undone before the next frame's procedural pose.
+        /// </summary>
+        public void FollowBones()
+        {
+            if (_jointRest.Count != _pairs.Count)
+            {
+                _jointRest.Clear();
+                foreach (var (joint, _, _) in _pairs) _jointRest.Add(joint.localPosition);
+            }
+
+            foreach (var (joint, bone, offset) in _pairs)
+                joint.SetPositionAndRotation(bone.position, bone.rotation * Quaternion.Inverse(offset));
+            _followed = true;
+        }
+
+        private void Update()
+        {
+            if (!_followed) return;
+            _followed = false;
+            for (var i = 0; i < _pairs.Count && i < _jointRest.Count; i++) _pairs[i].joint.localPosition = _jointRest[i];
+        }
 
         private void LateUpdate()
         {

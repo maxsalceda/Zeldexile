@@ -29,6 +29,8 @@ namespace Zeldexile.Player
         private float _currentDistance;
         /// <summary>Distance chosen with the wheel; <see cref="distance"/> eases toward it.</summary>
         private float _targetDistance;
+        /// <summary>Height the camera follows: eased, so steps and the controller's snaps never jolt the view.</summary>
+        private float _followY = float.NaN;
 
         public float Yaw => _yaw;
         public float Distance => distance;
@@ -70,8 +72,14 @@ namespace Zeldexile.Player
 
             distance = Mathf.Lerp(distance, _targetDistance, 1f - Mathf.Exp(-zoomSmoothing * dt));
 
+            var targetY = Target.position.y;
+            _followY = float.IsNaN(_followY) || Mathf.Abs(targetY - _followY) > 3f
+                ? targetY
+                : Mathf.Lerp(_followY, targetY, 1f - Mathf.Exp(-12f * dt));
+            var followed = new Vector3(Target.position.x, _followY, Target.position.z);
+
             var rotation = Quaternion.Euler(_pitch, _yaw, 0f);
-            var pivot = Target.position + Vector3.up * pivotHeight + rotation * Vector3.right * shoulderOffset;
+            var pivot = followed + Vector3.up * pivotHeight + rotation * Vector3.right * shoulderOffset;
             var back = rotation * Vector3.back;
 
             // The player sits on the Ignore Raycast layer, so default casts never hit it.

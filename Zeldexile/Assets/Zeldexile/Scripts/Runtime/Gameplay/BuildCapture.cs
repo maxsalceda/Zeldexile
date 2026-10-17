@@ -7,6 +7,7 @@ namespace Zeldexile.Gameplay
     /// <summary>
     /// Build check: "Zeldexile.exe -zxshot C:\path\shot.png" saves one screenshot after a few seconds
     /// and quits. Lets a test pipeline see what the real build renders. Does nothing otherwise.
+    /// With "-zxdev" the shot shows the developer menu open, playing a clip.
     /// </summary>
     public sealed class BuildCapture : MonoBehaviour
     {
@@ -36,7 +37,10 @@ namespace Zeldexile.Gameplay
             Application.runInBackground = true;
             var go = new GameObject("Captura de build");
             DontDestroyOnLoad(go);
-            var routine = Array.IndexOf(args, "-zxwalk") >= 0 ? WalkSequence(args[index + 1]) : Capture(args[index + 1]);
+            var routine = Array.IndexOf(args, "-zxclips") >= 0 ? ClipSequence(args[index + 1])
+                : Array.IndexOf(args, "-zxwalk") >= 0 ? WalkSequence(args[index + 1])
+                : Array.IndexOf(args, "-zxdev") >= 0 ? DevMenuShot(args[index + 1])
+                : Capture(args[index + 1]);
             go.AddComponent<BuildCapture>().StartCoroutine(routine);
         }
 
@@ -102,6 +106,78 @@ namespace Zeldexile.Gameplay
             }
 
             yield return new WaitForSecondsRealtime(1f);
+            Application.Quit();
+        }
+
+        /// <summary>
+        /// "-zxshot path.png -zxclips": the bone-for-bone clips seen from the side. The left button draws the sword from
+        /// the waist (path-sacar-1..6) and the first basic swing follows (path-ataque1-1..6); a second press chains the
+        /// second swing (path-ataque2-1..6); the sheathe button puts the sword back (path-guardar-1..6); then the hero
+        /// sprints sideways to the camera (path-correr-1..6) and the game quits.
+        /// </summary>
+        private static IEnumerator ClipSequence(string path)
+        {
+            var stem = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(path) ?? "", System.IO.Path.GetFileNameWithoutExtension(path));
+            yield return new WaitForSecondsRealtime(4f);
+            Zeldexile.Player.PlayerInputReader.ScriptedLook = new Vector2(1.6f, 0f);
+            yield return new WaitForSecondsRealtime(0.5f);
+            Zeldexile.Player.PlayerInputReader.ScriptedLook = Vector2.zero;
+            yield return new WaitForSecondsRealtime(0.5f);
+
+            var combat = FindFirstObjectByType<Zeldexile.Player.PlayerCombat>();
+            var rig = combat != null ? combat.Rig : null;
+            float Length(Zeldexile.Characters.DirectClip clip) => clip != null ? clip.Duration : 1.2f;
+
+            Zeldexile.Player.PlayerInputReader.ScriptedAttackPress = true;
+            yield return Frames(stem + "-sacar-", Length(rig?.DrawSword));
+            // Into the first swing: press again so the second one follows it.
+            var first = Length(rig?.BasicAttack1);
+            yield return Frames(stem + "-ataque1-", first * 0.5f, 3);
+            Zeldexile.Player.PlayerInputReader.ScriptedAttackPress = true;
+            yield return Frames(stem + "-ataque1-", first * 0.5f, 3, 4);
+            yield return Frames(stem + "-ataque2-", Length(rig?.BasicAttack2));
+            yield return new WaitForSecondsRealtime(0.6f);
+            Zeldexile.Player.PlayerInputReader.ScriptedSheathePress = true;
+            yield return Frames(stem + "-guardar-", Length(rig?.SheatheSword));
+
+            yield return new WaitForSecondsRealtime(0.8f);
+            Zeldexile.Player.PlayerInputReader.ScriptedLook = new Vector2(-1.6f, 0f);
+            yield return new WaitForSecondsRealtime(0.5f);
+            Zeldexile.Player.PlayerInputReader.ScriptedLook = Vector2.zero;
+            Zeldexile.Player.PlayerInputReader.ScriptedMove = new Vector2(1f, 0f);
+            Zeldexile.Player.PlayerInputReader.ScriptedSprint = true;
+            yield return new WaitForSecondsRealtime(1.5f);
+            yield return Frames(stem + "-correr-", Length(rig?.Sprint));
+            Zeldexile.Player.PlayerInputReader.ScriptedMove = null;
+            Zeldexile.Player.PlayerInputReader.ScriptedSprint = false;
+            yield return new WaitForSecondsRealtime(1f);
+            Application.Quit();
+        }
+
+        /// <summary>Frames numbered from <paramref name="first"/>, spread evenly over <paramref name="seconds"/>.</summary>
+        private static IEnumerator Frames(string prefix, float seconds, int count = 6, int first = 1)
+        {
+            for (var i = 0; i < count; i++)
+            {
+                yield return new WaitForSecondsRealtime(seconds / count);
+                ScreenCapture.CaptureScreenshot(prefix + (first + i) + ".png");
+            }
+        }
+
+        /// <summary>"-zxshot path.png -zxdev": opens the developer menu and plays the captured run in it, then saves the shot.</summary>
+        private static IEnumerator DevMenuShot(string path)
+        {
+            yield return new WaitForSecondsRealtime(5f);
+            var menu = FindFirstObjectByType<Zeldexile.UI.DevMenu>();
+            if (menu != null)
+            {
+                menu.Toggle();
+                menu.Play("Correr");
+            }
+
+            yield return new WaitForSecondsRealtime(1.2f);
+            ScreenCapture.CaptureScreenshot(path);
+            yield return new WaitForSecondsRealtime(1.5f);
             Application.Quit();
         }
 

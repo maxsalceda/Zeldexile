@@ -177,6 +177,8 @@ namespace Zeldexile.Gameplay
             combat.Motor = motor;
             combat.Caster = caster;
             combat.Targeting = targeting;
+            combat.Rig = visual;
+            motor.Rooted = () => combat.ClipRunning;
 
             var interactor = go.AddComponent<PlayerInteractor>();
             interactor.Input = input;
@@ -185,6 +187,7 @@ namespace Zeldexile.Gameplay
             var animator = go.AddComponent<CharacterAnimator>();
             animator.Rig = visual;
             animator.Source = motor;
+            animator.AdaptFeet = true;
             caster.Casted += animator.TriggerCast;
             combat.Acted += kind => animator.Play(kind);
             interactor.Interacted += () => animator.Play(ActionKind.Pickup);
@@ -214,6 +217,9 @@ namespace Zeldexile.Gameplay
             presenter.Rig = visual;
             presenter.Kneeling = () => hud.Kneeling;
             presenter.Crouching = () => motor.Crouching;
+            presenter.Sprinting = () => motor.Sprinting;
+            combat.DrawGrabTime = () => presenter.DrawGrab;
+            combat.SheatheReleaseTime = () => presenter.SheatheRelease;
             hud.Character = _player;
             hud.Motor = motor;
             hud.Caster = caster;

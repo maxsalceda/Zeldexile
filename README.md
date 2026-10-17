@@ -20,11 +20,12 @@ Design completo: [Docs/GDD.md](Docs/GDD.md) e a Bíblia de Design (link no GDD).
 |---|---|---|
 | Andar / câmera | WASD / mouse | Analógicos |
 | Zoom da câmera (1,2 a 12 m) | Roda do mouse | Analógico direito pressionado + cima/baixo |
-| Correr (gasta stamina) | Shift | B / Círculo |
+| Correr (gasta stamina; clipe `heroi_correr_rapido`) | Shift | B / Círculo |
 | Agachar / levantar (anda devagar) | Ctrl | Analógico esquerdo pressionado |
 | Pular / planar (no ar) / salto de escalada | Espaço | X / Triângulo |
 | Escalar | andar contra a parede | — |
-| Atacar com a arma | Clique esquerdo | Y / Quadrado |
+| Atacar com a arma (espada na bainha: saca primeiro; clicar durante o golpe encadeia o 2º golpe do combo) | Clique esquerdo | Y / Quadrado |
+| Guardar a espada na bainha (também sozinha após 6 s parado sem combate) | X | Back / View |
 | Ataque pesado (combo de espada e escudo) | Botão direito (toque) | RT (toque) |
 | Arremessar a arma | F | RB |
 | Arco (segurar para mirar; no ar = câmera lenta) + atirar | Botão direito segurado + clique | RT segurado + Y |
@@ -72,6 +73,15 @@ Zeldexile/Assets/Zeldexile/
   Meshy, endireita o esqueleto e copia a pose procedural do `CharacterAnimator` para os ossos; espada, escudo e
   arco vêm do `heroi_anime`. Para trocar o herói, substitua os dois arquivos; para voltar ao modelo do Blender,
   esvazie `RigStyle.Hero.SkinnedModel`.
+- **Clipes osso a osso**: as animações enviadas para correr (Shift), o combo básico (`heroi_ataque_basico_1` e `_2`),
+  sacar a espada da cintura e guardá-la tocam exatamente como foram animadas, em todos os ossos (coluna, ombros,
+  torção, dedos): `DirectClip` roda o clipe numa cópia oculta do próprio FBX e passa a rotação de cada osso para o
+  herói, corrigindo só a diferença entre as poses de repouso (o clipe em T, o herói em A). `DirectLayer` toca o
+  clipe sobre o corpo procedural e devolve o corpo a ele no fim. Para um clipe novo: copie o FBX para
+  `Resources/Models/Skinned/Animacoes`, gere a pose de repouso com
+  `blender -b --factory-startup -P Tools/Blender/export_rest.py -- <arquivo>.fbx` (cria `<arquivo>_repouso.json` ao lado)
+  e dê o nome em `RigStyle.Hero`. O teste `DirectClipTests` mede osso a osso que o herói segue o clipe
+  (`Logs/animacoes/verificacao.txt`); `Tools/Blender/rig_report.py` compara esqueletos.
 
 Para regenerar os modelos:
 ```

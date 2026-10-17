@@ -29,6 +29,8 @@ namespace Zeldexile.Player
         public bool DodgePressed { get; private set; }
         /// <summary>Crouch toggle: left Ctrl, or the left stick pressed in.</summary>
         public bool CrouchPressed { get; private set; }
+        /// <summary>Puts the sword back in its sheath (X; Back/View on a controller).</summary>
+        public bool SheathePressed { get; private set; }
         public bool MenuPressed { get; private set; }
         public int SkillSlotPressed { get; private set; } = -1;
         /// <summary>Camera zoom: positive = closer, negative = farther (mouse wheel notches, or right stick click held).</summary>
@@ -44,6 +46,8 @@ namespace Zeldexile.Player
         public static bool ScriptedSprint;
         /// <summary>One-frame scripted right-button press and release (consumed when read).</summary>
         public static bool ScriptedHeavyPress, ScriptedHeavyRelease;
+        /// <summary>One-frame scripted left-button press and sheathe press (consumed when read).</summary>
+        public static bool ScriptedAttackPress, ScriptedSheathePress;
         /// <summary>Scripted camera look, added every frame while set.</summary>
         public static Vector2 ScriptedLook;
 
@@ -61,7 +65,7 @@ namespace Zeldexile.Player
             var zoom = 0f;
             bool sprint = false, jump = false, attack = false, throwIt = false, interact = false, rune = false;
             bool bowAim = false, guardDown = false, guardReleased = false, dodge = false, menu = false, crouch = false;
-            bool heavyDown = false, heavyUp = false;
+            bool heavyDown = false, heavyUp = false, sheathe = false;
             SkillSlotPressed = -1;
 
             if (kb != null)
@@ -84,6 +88,7 @@ namespace Zeldexile.Player
                 guardReleased |= kb.qKey.wasReleasedThisFrame;
                 dodge |= kb.leftAltKey.wasPressedThisFrame || kb.cKey.wasPressedThisFrame;
                 crouch |= kb.leftCtrlKey.wasPressedThisFrame;
+                sheathe |= kb.xKey.wasPressedThisFrame;
             }
 
             if (mouse != null)
@@ -124,6 +129,7 @@ namespace Zeldexile.Player
                 guardReleased |= pad.leftShoulder.wasReleasedThisFrame;
                 menu |= pad.startButton.wasPressedThisFrame;
                 crouch |= pad.leftStickButton.wasPressedThisFrame;
+                sheathe |= pad.selectButton.wasPressedThisFrame;
                 if (pad.dpad.right.wasPressedThisFrame) SkillSlotPressed = 0;
                 if (pad.dpad.up.wasPressedThisFrame) SkillSlotPressed = 1;
                 if (pad.dpad.left.wasPressedThisFrame) SkillSlotPressed = 2;
@@ -156,7 +162,7 @@ namespace Zeldexile.Player
                 Look = Vector2.zero;
                 Zoom = 0f;
                 Sprint = JumpPressed = AttackPressed = ThrowPressed = InteractPressed = RunePressed = false;
-                BowAimHeld = GuardHeld = LockPressed = DodgePressed = CrouchPressed = HeavyPressed = HeavyReleased = false;
+                BowAimHeld = GuardHeld = LockPressed = DodgePressed = CrouchPressed = HeavyPressed = HeavyReleased = SheathePressed = false;
                 SkillSlotPressed = -1;
                 return;
             }
@@ -168,6 +174,9 @@ namespace Zeldexile.Player
             heavyDown |= ScriptedHeavyPress;
             heavyUp |= ScriptedHeavyRelease;
             ScriptedHeavyPress = ScriptedHeavyRelease = false;
+            attack |= ScriptedAttackPress;
+            sheathe |= ScriptedSheathePress;
+            ScriptedAttackPress = ScriptedSheathePress = false;
 
             Move = Vector2.ClampMagnitude(move, 1f);
             Look = look;
@@ -184,6 +193,7 @@ namespace Zeldexile.Player
             GuardHeld = guardHeld;
             LockPressed = lockOn;
             DodgePressed = dodge;
+            SheathePressed = sheathe;
         }
     }
 }

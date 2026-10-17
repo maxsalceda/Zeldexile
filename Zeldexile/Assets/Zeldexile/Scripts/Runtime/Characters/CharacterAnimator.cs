@@ -45,6 +45,12 @@ namespace Zeldexile.Characters
         float MaxGroundSpeed { get; }
     }
 
+    /// <summary>A source whose drawn body sits off its transform (a CharacterController's skin, an eased step).</summary>
+    public interface IVisualOffset
+    {
+        float VisualOffsetY { get; }
+    }
+
     /// <summary>
     /// Procedural poses for the skeleton of <see cref="CharacterRig"/>: walk/run cycle, jump, climb, glide, swim,
     /// held stances (shield up, bow drawn, kneeling) and one-shot actions (each weapon class swings its own
@@ -66,6 +72,11 @@ namespace Zeldexile.Characters
         public CharacterRig Rig;
         public IAnimationSource Source;
 
+        /// <summary>Dev menu: a captured clip played as is, looping, in place of the locomotion pose (null = off).</summary>
+        public MotionClip PreviewClip { get; set; }
+        /// <summary>Seconds into <see cref="PreviewClip"/>; it loops.</summary>
+        public float PreviewTime { get; set; }
+
         [SerializeField] private float blend = 14f;
         [SerializeField] private float strideLength = 1.5f;
 
@@ -79,6 +90,11 @@ namespace Zeldexile.Characters
         public bool ShieldInHand { get; set; }
         /// <summary>Crouched (sneaking): the captured crouched walk replaces the walk.</summary>
         public bool Crouching { get; set; }
+        /// <summary>
+        /// Feet on uneven ground: the hips drop to the lower foot's ground and the other leg bends to reach its own,
+        /// with the soles tilted to the slope. Off for bodies that never leave flat ground.
+        /// </summary>
+        public bool AdaptFeet { get; set; }
 
         /// <summary>
         /// Left arm brought forward and across the chest. The forearm shield's face (the arm's -X side) then
@@ -101,6 +117,11 @@ namespace Zeldexile.Characters
 
         private float _phase;
         private float _clipProgress;
+        /// <summary>Time into the captured standing loop; it keeps running while moving, so stopping resumes it.</summary>
+        private float _idleTime;
+
+        /// <summary>Seconds the captured standing loop has played (<see cref="CharacterRig.Idle"/>).</summary>
+        public float IdleTime => _idleTime;
         private float _groundSpeed;
         private MotionClip _airClip;
         private bool _wasAirborne;
@@ -116,6 +137,11 @@ namespace Zeldexile.Characters
         private float _oneShotEnd;
         private float _oneShotTime;
         private float _oneShotLength;
+        /// <summary>Weight of the one-shot transition; a cancelled one fades out instead of popping.</summary>
+        private float _oneShotFade = 1f;
+        private bool _oneShotCancelled;
+        /// <summary>Highest ground speed of the last moments, decaying: a stop clip is only for halting from a walk.</summary>
+        private float _recentPeak;
         private float _actionStart = -10f;
         private float _actionDuration;
         private int _actionIndex;
@@ -126,6 +152,13 @@ namespace Zeldexile.Characters
         private float _bagVelocity;
         private float _lastHipsY = float.NaN;
         private float _lastHipsSpeed;
+        private Vector2 _lean;
+        private float _leanSpeed = float.NaN;
+        private float _accel;
+        private float _footLiftL, _footLiftR, _hipsDrop;
+        private bool _feetAdapted;
+        private Quaternion _legL, _legR, _kneeL, _kneeR, _ankleL, _ankleR;
+        private Vector3 _hipsLocal;
 
         /// <summary>Plays a one-shot action. Repeated slashes alternate their direction.</summary>
         public void Play(ActionKind kind, float duration = -1f)
@@ -179,6 +212,11 @@ namespace Zeldexile.Characters
         {
             if (Rig == null || Source == null) return;
             var dt = Time.deltaTime;
+            RestoreFeet();
+            var yaw = transform.eulerAngles.y;
+            var yawRate = float.IsNaN(_lastYaw) || dt <= 0f ? 0f : Mathf.DeltaAngle(_lastYaw, yaw) / dt;
+            _lastYaw = yaw;
+            _yawRate = Mathf.Lerp(_yawRate, yawRate, 1f - Mathf.Exp(-8f * dt));
             var velocity = Source.Velocity;
             var horizontal = new Vector3(velocity.x, 0f, velocity.z);
             var speed = horizontal.magnitude;
@@ -208,6 +246,12 @@ namespace Zeldexile.Characters
                 default: pose = Rig.Walk != null || Rig.Run != null ? CapturedGround(speed, horizontal, dt) : Ground(speed, run, dt); break;
             }
 
+            if (PreviewClip != null)
+            {
+                PreviewTime += dt;
+                pose = PreviewClip.Sample(PreviewTime / PreviewClip.Duration);
+            }
+
             if (grounded)
             {
                 if (Kneeling) pose = Mix(pose, Kneel(), 1f);
@@ -217,6 +261,8 @@ namespace Zeldexile.Characters
 
             ApplyAction(ref pose);
             ApplyPose(pose, grounded, dt);
+            Lean(speed, grounded, dt);
+            if (AdaptFeet) AdaptFeetToGround(grounded && !Kneeling, dt);
             Secondary(velocity, dt);
 
             if (Rig.Glider.gameObject.activeSelf != pose.ShowGlider) Rig.Glider.gameObject.SetActive(pose.ShowGlider);
@@ -285,6 +331,136 @@ namespace Zeldexile.Characters
             _bagVelocity += (80f * (target - _bagAngle) - 9f * _bagVelocity) * dt;
             _bagAngle = Mathf.Clamp(_bagAngle + _bagVelocity * dt, -35f, 50f);
             Rig.Bag.localRotation = E(_bagAngle);
+        }
+
+        private Vector3 _rootPosition;
+        private Quaternion _rootRotation;
+        private bool _rootKnown;
+
+        /// <summary>
+        /// The whole body leans around the feet: into a curve (more the faster and tighter it is), forward when
+        /// speeding up and back when braking. The visual offset of the source (controller skin, eased steps) moves it
+        /// down onto the ground.
+        /// </summary>
+        private void Lean(float speed, bool grounded, float dt)
+        {
+            if (!_rootKnown)
+            {
+                _rootPosition = Rig.transform.localPosition;
+                _rootRotation = Rig.transform.localRotation;
+                _rootKnown = true;
+            }
+
+            if (dt > 0f)
+            {
+                var accel = float.IsNaN(_leanSpeed) ? 0f : (speed - _leanSpeed) / dt;
+                _accel = Mathf.Lerp(_accel, accel, 1f - Mathf.Exp(-6f * dt));
+            }
+
+            _leanSpeed = speed;
+            var roll = grounded ? Mathf.Clamp(-_yawRate * speed * 0.0125f, -12f, 12f) : 0f;
+            var pitch = grounded ? Mathf.Clamp(_accel * 0.3f, -5f, 6f) : 0f;
+            _lean = Vector2.Lerp(_lean, new Vector2(pitch, roll), 1f - Mathf.Exp(-8f * dt));
+            var offset = Source is IVisualOffset visual ? visual.VisualOffsetY : 0f;
+            Rig.transform.localPosition = _rootPosition + Vector3.up * offset;
+            // A bone-for-bone clip carries its own balance: no lean is added over it.
+            var free = Rig.Direct != null ? 1f - Rig.Direct.Weight : 1f;
+            Rig.transform.localRotation = _rootRotation * Quaternion.Euler(_lean.x * free, 0f, _lean.y * free);
+        }
+
+        /// <summary>Undoes last frame's foot adaptation, so the pose blends from the animated legs, not the bent ones.</summary>
+        private void RestoreFeet()
+        {
+            if (!_feetAdapted) return;
+            _feetAdapted = false;
+            Rig.Hips.localPosition = _hipsLocal;
+            Rig.LegL.localRotation = _legL;
+            Rig.LegR.localRotation = _legR;
+            Rig.KneeL.localRotation = _kneeL;
+            Rig.KneeR.localRotation = _kneeR;
+            Rig.AnkleL.localRotation = _ankleL;
+            Rig.AnkleR.localRotation = _ankleR;
+        }
+
+        /// <summary>
+        /// Feet on the real ground: each sole is probed straight down; the hips drop to the lower foot's ground and the
+        /// other leg bends to lift its foot onto its own, the planted soles tilting with the slope. Smoothed, so the
+        /// faceted terrain never makes the legs twitch.
+        /// </summary>
+        private void AdaptFeetToGround(bool on, float dt)
+        {
+            if (Rig.LegL == null || Rig.LegR == null || Rig.KneeL == null || Rig.KneeR == null || Rig.AnkleL == null || Rig.AnkleR == null)
+                return;
+            _hipsLocal = Rig.Hips.localPosition;
+            _legL = Rig.LegL.localRotation;
+            _legR = Rig.LegR.localRotation;
+            _kneeL = Rig.KneeL.localRotation;
+            _kneeR = Rig.KneeR.localRotation;
+            _ankleL = Rig.AnkleL.localRotation;
+            _ankleR = Rig.AnkleR.localRotation;
+            _feetAdapted = true;
+
+            var plane = Rig.transform.TransformPoint(new Vector3(0f, Rig.GroundY, 0f)).y;
+            var k = 1f - Mathf.Exp(-14f * dt);
+            var groundL = Probe(Rig.AnkleL, Rig.ToesL, plane, out var normalL, out var soleL);
+            var groundR = Probe(Rig.AnkleR, Rig.ToesR, plane, out var normalR, out var soleR);
+            _footLiftL = Mathf.Lerp(_footLiftL, on ? groundL : 0f, k);
+            _footLiftR = Mathf.Lerp(_footLiftR, on ? groundR : 0f, k);
+            _hipsDrop = Mathf.Min(0f, Mathf.Min(_footLiftL, _footLiftR));
+            if (Mathf.Abs(_footLiftL) < 0.002f && Mathf.Abs(_footLiftR) < 0.002f) return;
+
+            Rig.Hips.position += Vector3.up * _hipsDrop;
+            Reach(Rig.LegL, Rig.KneeL, Rig.AnkleL, _footLiftL - _hipsDrop, on ? normalL : Vector3.up, soleL);
+            Reach(Rig.LegR, Rig.KneeR, Rig.AnkleR, _footLiftR - _hipsDrop, on ? normalR : Vector3.up, soleR);
+        }
+
+        /// <summary>
+        /// Height of the ground under a foot relative to the flat ground the pose assumes (clamped to a step), its
+        /// normal, and how close the sole is to the pose's ground (1 = planted, 0 = lifted 8 cm or more).
+        /// </summary>
+        private float Probe(Transform ankle, Transform toes, float plane, out Vector3 normal, out float planted)
+        {
+            var sole = new Vector3(0f, float.MaxValue, 0f);
+            foreach (var (bone, local) in Rig.Contacts)
+            {
+                if (bone != ankle && bone != toes) continue;
+                var w = bone.TransformPoint(local);
+                if (w.y < sole.y) sole = w;
+            }
+
+            normal = Vector3.up;
+            planted = 0f;
+            if (sole.y == float.MaxValue) return 0f;
+            planted = 1f - Mathf.Clamp01((sole.y - plane) / 0.08f);
+            if (!Physics.Raycast(new Vector3(sole.x, plane + 0.6f, sole.z), Vector3.down, out var hit, 1.2f,
+                    Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
+                return 0f;
+            normal = Vector3.Angle(hit.normal, Vector3.up) < 35f ? hit.normal : Vector3.up;
+            return Mathf.Clamp(hit.point.y - plane, -0.4f, 0.4f);
+        }
+
+        /// <summary>
+        /// Two-bone reach: the knee bends (law of cosines) and the thigh swings so the ankle rises by
+        /// <paramref name="lift"/> meters; the foot keeps its orientation, tilted toward the ground normal while planted.
+        /// </summary>
+        private static void Reach(Transform thigh, Transform knee, Transform ankle, float lift, Vector3 normal, float planted)
+        {
+            var footRotation = ankle.rotation;
+            if (Mathf.Abs(lift) > 0.002f)
+            {
+                Vector3 a = thigh.position, b = knee.position, c = ankle.position;
+                var target = c + Vector3.up * lift;
+                float upper = (b - a).magnitude, lower = (c - b).magnitude;
+                var reach = Mathf.Clamp((target - a).magnitude, Mathf.Abs(upper - lower) + 0.01f, upper + lower - 0.005f);
+                var now = Vector3.Angle(a - b, c - b);
+                var wanted = Mathf.Acos(Mathf.Clamp((upper * upper + lower * lower - reach * reach) / (2f * upper * lower), -1f, 1f)) * Mathf.Rad2Deg;
+                var axis = Vector3.Cross(b - a, c - b);
+                if (axis.sqrMagnitude < 1e-8f) axis = thigh.right;
+                knee.rotation = Quaternion.AngleAxis(now - wanted, axis.normalized) * knee.rotation;
+                thigh.rotation = Quaternion.FromToRotation(ankle.position - a, target - a) * thigh.rotation;
+            }
+
+            ankle.rotation = Quaternion.Slerp(Quaternion.identity, Quaternion.FromToRotation(Vector3.up, normal), planted * 0.8f) * footRotation;
         }
 
         public struct Pose
@@ -502,8 +678,8 @@ namespace Zeldexile.Characters
         /// Walk and run from the captured loops (<see cref="CharacterRig.Walk"/>, <see cref="CharacterRig.Run"/>).
         /// Each loop plays at the cadence that keeps its planted foot still on the ground, up to 1.4 times its own
         /// pace (then the stride lengthens); between the two speeds the loops cross-fade on a shared,
-        /// heel-strike-aligned progress. Standing
-        /// still, the procedural idle takes over. On top of that:
+        /// heel-strike-aligned progress. Standing still, the captured standing loop (<see cref="CharacterRig.Idle"/>)
+        /// plays at its own pace, or the procedural idle without one. On top of that:
         /// <list type="bullet">
         /// <item>crouched, the crouched-walk loop replaces the walk (and holds its last step when stopped);</item>
         /// <item>turning while walking blends in the turning loop, mirrored for right turns;</item>
@@ -516,7 +692,14 @@ namespace Zeldexile.Characters
         {
             var walk = Rig.Walk ?? Rig.Run;
             var runClip = Rig.Run ?? Rig.Walk;
-            var idle = Ground(0f, 0f, dt);
+            // The procedural idle still supplies the holds of a drawn sword and a raised shield (below).
+            var holds = Ground(0f, 0f, dt);
+            var idle = holds;
+            if (Rig.Idle != null)
+            {
+                _idleTime += dt;
+                idle = Rig.Idle.Sample(_idleTime / Rig.Idle.Duration);
+            }
             var moving = Mathf.SmoothStep(0f, 1f, speed / 0.6f);
             var walkTop = walk.Speed * 1.2f;
             var runW = runClip == walk ? 0f
@@ -566,26 +749,27 @@ namespace Zeldexile.Characters
             {
                 _oneShotTime += dt;
                 var u = _oneShotTime / _oneShotLength;
-                if (u >= 1f) _oneShot = null;
+                if (_oneShotCancelled) _oneShotFade = Mathf.MoveTowards(_oneShotFade, 0f, dt * 6f);
+                if (u >= 1f || _oneShotFade <= 0f) _oneShot = null;
                 else
                 {
                     var w = Mathf.SmoothStep(0f, 1f, u / 0.12f) * (1f - Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.75f, 1f, u)));
-                    pose = Mix(pose, _oneShot.Sample(Mathf.Lerp(_oneShotStart, _oneShotEnd, u)), w * (1f - _crouchWeight));
+                    pose = Mix(pose, _oneShot.Sample(Mathf.Lerp(_oneShotStart, _oneShotEnd, u)), w * _oneShotFade * (1f - _crouchWeight));
                 }
             }
 
             if (Armed)
             {
-                pose.ArmR = idle.ArmR;
-                pose.ElbowR = idle.ElbowR;
-                pose.WristR = idle.WristR;
-                pose.FingersR = idle.FingersR;
+                pose.ArmR = holds.ArmR;
+                pose.ElbowR = holds.ElbowR;
+                pose.WristR = holds.WristR;
+                pose.FingersR = holds.FingersR;
             }
 
             if (ShieldInHand)
             {
-                pose.ElbowL = idle.ElbowL;
-                pose.FingersL = idle.FingersL;
+                pose.ElbowL = holds.ElbowL;
+                pose.FingersL = holds.FingersL;
             }
 
             return pose;
@@ -611,27 +795,25 @@ namespace Zeldexile.Characters
         /// <summary>Watches speed, heading and turning to start the one-shot transition clips.</summary>
         private void Transitions(float speed, Vector3 horizontal, MotionClip walk, float dt)
         {
-            var yaw = transform.eulerAngles.y;
-            var rate = float.IsNaN(_lastYaw) || dt <= 0f ? 0f : Mathf.DeltaAngle(_lastYaw, yaw) / dt;
-            _lastYaw = yaw;
-            _yawRate = Mathf.Lerp(_yawRate, rate, 1f - Mathf.Exp(-8f * dt));
-
             const float still = 0.15f;
             var walkingPace = walk.Speed * 1.6f;
+            _recentPeak = Mathf.Max(speed, _recentPeak - 6f * dt);
             if (!Crouching)
             {
+                // The start and stop clips step off and settle at a walking pace; a jog sets off and halts on its own
+                // loop, whose cadence follows the speed, so the feet stay planted.
                 if (_lastSpeed < still && speed >= still && _stillTime > 0.3f && speed < walkingPace && Rig.StartWalk != null)
                     PlayLocomotion(Rig.StartWalk, Rig.StartWalk.StartWindow(), 1.15f);
-                else if (_lastSpeed >= still && speed < still && _walkTime > 0.5f && _lastSpeed < walkingPace && Rig.StopWalk != null)
+                else if (_lastSpeed >= still && speed < still && _walkTime > 0.5f && _recentPeak < walkingPace && Rig.StopWalk != null)
                     PlayLocomotion(Rig.StopWalk, Rig.StopWalk.StopWindow(), 1.15f);
                 else if (speed > 0.5f && speed < walkingPace && Rig.TurnAround != null && _oneShot != Rig.TurnAround
                          && Vector3.Angle(horizontal, transform.forward) > 135f)
                     PlayLocomotion(Rig.TurnAround, (0f, 0.9f), 1.4f);
             }
 
-            // Setting off cancels a stop; halting cancels a start.
-            if (_oneShot == Rig.StopWalk && speed > 0.3f) _oneShot = null;
-            if (_oneShot == Rig.StartWalk && speed < 0.05f) _oneShot = null;
+            // Setting off cancels a stop; halting, or speeding past a walk, cancels a start.
+            if (_oneShot == Rig.StopWalk && speed > 0.3f) _oneShotCancelled = true;
+            if (_oneShot == Rig.StartWalk && (speed < 0.05f || speed > walkingPace)) _oneShotCancelled = true;
 
             _stillTime = speed < still ? _stillTime + dt : 0f;
             _walkTime = speed >= still ? _walkTime + dt : 0f;
@@ -642,6 +824,8 @@ namespace Zeldexile.Characters
         {
             if (window.end <= window.start) return;
             _oneShot = clip;
+            _oneShotFade = 1f;
+            _oneShotCancelled = false;
             _oneShotStart = window.start;
             _oneShotEnd = window.end;
             _oneShotTime = 0f;

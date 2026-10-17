@@ -47,6 +47,46 @@ namespace Zeldexile.Player
         public bool InCombatStance => Time.time < _stanceUntil || Guarding || (Targeting != null && Targeting.Target != null);
         public int Combo { get; private set; }
 
+        // ---------- Sword on the waist and the basic combo (bone-for-bone clips) ----------
+
+        /// <summary>The hero's clips; with a draw clip the sword lives in the waist sheath and is drawn and put away for real.</summary>
+        public CharacterRig Rig;
+        /// <summary>Seconds into the draw clip when the hand pulls the hilt out of the sheath, and into the sheathe clip when it lets go.</summary>
+        public System.Func<float> DrawGrabTime, SheatheReleaseTime;
+        /// <summary>Seconds with the sword out and nothing happening before it goes back in the sheath by itself.</summary>
+        [SerializeField] private float sheatheAfterSeconds = 6f;
+
+        public enum SwordState { Sheathed, Drawing, Drawn, Sheathing }
+        public enum ClipAction { None, Draw, Sheathe, Attack1, Attack2 }
+
+        public SwordState Sword { get; private set; } = SwordState.Sheathed;
+        /// <summary>The full-body clip combat is playing (the presenter shows it), when it started, and a count that changes with each start.</summary>
+        public ClipAction CurrentClip { get; private set; }
+        public float ClipStart { get; private set; }
+        public int ClipSerial { get; private set; }
+        public bool ClipRunning => CurrentClip != ClipAction.None && Time.time - ClipStart < _clipLength;
+        /// <summary>True while the sword is visibly in the hand (from the grab of a draw to the release of a sheathe).</summary>
+        public bool SwordInHand
+        {
+            get
+            {
+                switch (Sword)
+                {
+                    case SwordState.Drawn: return true;
+                    case SwordState.Drawing: return Time.time - ClipStart >= (DrawGrabTime?.Invoke() ?? 0f);
+                    case SwordState.Sheathing: return Time.time - ClipStart < (SheatheReleaseTime?.Invoke() ?? 0f);
+                    default: return false;
+                }
+            }
+        }
+
+        /// <summary>The sword really goes in and out of the sheath (the rig has the draw and sheathe clips).</summary>
+        public bool UsesSheath => Rig != null && Rig.DrawSword != null && Rig.SheatheSword != null;
+
+        private float _clipLength;
+        private bool _attackQueued, _heavyQueued, _comboQueued;
+        private float _lastCombat = -100f;
+
         private float _nextAttack;
         private float _lastSwing = -10f;
         private readonly List<(float at, float multiplier, bool last)> _pendingHits = new List<(float, float, bool)>();
@@ -76,6 +116,7 @@ namespace Zeldexile.Player
                 ResolveSwing(power, last);
             }
 
+            UpdateSword();
             if (Motor.Current == PlayerMotor.State.Climbing || Motor.Current == PlayerMotor.State.Swimming) return;
 
             // Right button: without a bow it is the heavy attack at once; with one, a tap is the heavy attack and
@@ -106,9 +147,27 @@ namespace Zeldexile.Player
 
         private void Swing()
         {
-            if (Time.time < _nextAttack) return;
             var weapon = Character.Weapon;
             if (weapon != null && !weapon.IsUsable) weapon = null;
+            if (weapon != null && UsesSheath)
+            {
+                _lastCombat = Time.time;
+                // Sword in the sheath: draw it first; the swing follows the draw.
+                if (Sword != SwordState.Drawn)
+                {
+                    _attackQueued = true;
+                    if (Sword == SwordState.Sheathed && Motor.IsGrounded) StartDraw();
+                    return;
+                }
+
+                if (weapon.Class == WeaponClass.OneHanded && Rig.BasicAttack1 != null && Rig.BasicAttack2 != null)
+                {
+                    BasicSwing();
+                    return;
+                }
+            }
+
+            if (Time.time < _nextAttack) return;
             var cls = weapon?.Class ?? WeaponClass.OneHanded;
             var cooldown = cls == WeaponClass.TwoHanded ? 0.7f : cls == WeaponClass.Spear ? 0.3f : 0.38f;
             if (Character.CounterActive) cooldown *= 0.3f; // Flurry Rush.
@@ -129,9 +188,22 @@ namespace Zeldexile.Player
         /// </summary>
         private void HeavySwing()
         {
-            if (Time.time < _nextAttack) return;
             var weapon = Character.Weapon;
             if (weapon != null && !weapon.IsUsable) weapon = null;
+            if (weapon != null && UsesSheath)
+            {
+                _lastCombat = Time.time;
+                if (Sword != SwordState.Drawn)
+                {
+                    _heavyQueued = true;
+                    if (Sword == SwordState.Sheathed && Motor.IsGrounded) StartDraw();
+                    return;
+                }
+
+                if (ClipRunning) return;
+            }
+
+            if (Time.time < _nextAttack) return;
             if (weapon != null && weapon.Class == WeaponClass.Spear) return; // no heavy with a spear yet
             var times = HeavyHitTimes?.Invoke();
             if (times == null || times.Length == 0) times = new[] { swingDelay + 0.3f };
@@ -142,6 +214,134 @@ namespace Zeldexile.Player
             for (var i = 0; i < times.Length; i++) _pendingHits.Add((Time.time + times[i], 1.2f, i == times.Length - 1));
             Act(ActionKind.SlashHeavy);
             FaceTarget();
+        }
+
+        /// <summary>
+        /// Left button with a one-handed sword: the first swing of the basic combo; pressing again while a swing plays
+        /// chains the next one when it ends (first, second, first...). Each strike of a clip lands at the moment its
+        /// right hand moves fastest; the last strike of the second swing is the combo's finisher.
+        /// </summary>
+        private void BasicSwing()
+        {
+            if ((CurrentClip == ClipAction.Attack1 || CurrentClip == ClipAction.Attack2) && ClipRunning)
+            {
+                _comboQueued = true;
+                return;
+            }
+
+            if (ClipRunning) return;
+            StartBasic(ClipAction.Attack1);
+        }
+
+        private void StartBasic(ClipAction step)
+        {
+            var clip = step == ClipAction.Attack1 ? Rig.BasicAttack1 : Rig.BasicAttack2;
+            StartClip(step, clip.Duration);
+            _comboQueued = false;
+            _lastSwing = Time.time;
+            _lastCombat = Time.time;
+            _stanceUntil = Time.time + 4f;
+            Combo = step == ClipAction.Attack1 ? 1 : 2;
+            var strikes = clip.Strikes.Count > 0 ? clip.Strikes : new List<float> { clip.Duration * 0.4f };
+            for (var i = 0; i < strikes.Count; i++)
+                _pendingHits.Add((Time.time + strikes[i], 1f, step == ClipAction.Attack2 && i == strikes.Count - 1));
+            _nextAttack = Time.time + clip.Duration;
+            FaceTarget();
+        }
+
+        private void StartClip(ClipAction action, float length)
+        {
+            CurrentClip = action;
+            ClipStart = Time.time;
+            _clipLength = length;
+            ClipSerial++;
+        }
+
+        private void StartDraw()
+        {
+            Sword = SwordState.Drawing;
+            StartClip(ClipAction.Draw, Rig.DrawSword.Duration);
+        }
+
+        private void StartSheathe()
+        {
+            Sword = SwordState.Sheathing;
+            _attackQueued = _heavyQueued = false;
+            StartClip(ClipAction.Sheathe, Rig.SheatheSword.Duration);
+        }
+
+        /// <summary>
+        /// The sword's way in and out of the sheath: a target locked draws it; the sheathe button or some quiet seconds
+        /// standing put it back; each clip that ends hands over to what was waiting (a swing after a draw, the next
+        /// swing of the combo).
+        /// </summary>
+        private void UpdateSword()
+        {
+            if (!UsesSheath)
+            {
+                Sword = InCombatStance ? SwordState.Drawn : SwordState.Sheathed;
+                return;
+            }
+
+            var weapon = Character.Weapon;
+            var hasSword = weapon != null && weapon.IsUsable;
+            if (!hasSword && Sword != SwordState.Sheathed)
+            {
+                Sword = SwordState.Sheathed;
+                CurrentClip = ClipAction.None;
+                _attackQueued = _heavyQueued = _comboQueued = false;
+            }
+
+            var locked = Targeting != null && Targeting.Target != null;
+            if (locked || Guarding) _lastCombat = Time.time;
+
+            // Leaving the ground (a jump, a fall) cuts a clip short.
+            if (CurrentClip != ClipAction.None && !Motor.IsGrounded) EndClip(true);
+            if (CurrentClip != ClipAction.None && !ClipRunning) EndClip(false);
+
+            if (CurrentClip != ClipAction.None || !hasSword || !Motor.IsGrounded) return;
+            if (Sword == SwordState.Sheathed && (locked || _attackQueued || _heavyQueued))
+            {
+                StartDraw();
+                return;
+            }
+
+            if (Sword != SwordState.Drawn) return;
+            var still = new Vector3(Motor.Velocity.x, 0f, Motor.Velocity.z).sqrMagnitude < 0.04f;
+            if ((Input.SheathePressed && !locked && !Guarding)
+                || (still && !locked && !Guarding && Time.time - _lastCombat > sheatheAfterSeconds))
+                StartSheathe();
+        }
+
+        private void EndClip(bool cut)
+        {
+            var action = CurrentClip;
+            var inHand = SwordInHand;
+            CurrentClip = ClipAction.None;
+            switch (action)
+            {
+                case ClipAction.Draw:
+                    Sword = !cut || inHand ? SwordState.Drawn : SwordState.Sheathed;
+                    var attack = _attackQueued;
+                    var heavy = _heavyQueued;
+                    _attackQueued = _heavyQueued = false;
+                    if (Sword == SwordState.Drawn && Motor.IsGrounded)
+                    {
+                        if (attack) Swing();
+                        else if (heavy) HeavySwing();
+                    }
+
+                    break;
+                case ClipAction.Sheathe:
+                    Sword = !cut || !inHand ? SwordState.Sheathed : SwordState.Drawn;
+                    break;
+                case ClipAction.Attack1:
+                case ClipAction.Attack2:
+                    var next = !cut && _comboQueued;
+                    _comboQueued = false;
+                    if (next) StartBasic(action == ClipAction.Attack1 ? ClipAction.Attack2 : ClipAction.Attack1);
+                    break;
+            }
         }
 
         private void FaceTarget()

@@ -22,6 +22,8 @@ modelo, textura, cena, configuração), antes de encerrar a tarefa:
    `<nome>-parado-1..2.png` (meia respiração entre eles) e `<nome>-correr-1..6.png`. Os quadros de andar precisam mostrar
    pernas em posições diferentes: os testes rodam no editor, e só o executável revela o que o editor esconde
    (por exemplo, `AnimationClip.SampleAnimation` não move ossos fora do editor).
+   Para os clipes osso a osso (correr, combo básico, sacar e guardar a espada), rode com `-zxclips`: o jogo salva
+   `<nome>-sacar-1..6`, `<nome>-ataque1-1..6`, `<nome>-ataque2-1..6`, `<nome>-guardar-1..6` e `<nome>-correr-1..6`.
    ```
    "D:\19 - Zeldexile\Builds\Windows\Zeldexile.exe" -zxshot "D:\19 - Zeldexile\Builds\Windows\walk.png" -zxwalk
    ```

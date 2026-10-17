@@ -14,7 +14,7 @@ namespace Zeldexile.Player
     /// Falls hurt from 6 m and kill from 30 m, unless the glider is open or the landing is deep water.
     /// </summary>
     [RequireComponent(typeof(CharacterController))]
-    public sealed class PlayerMotor : MonoBehaviour, IAnimationSource
+    public sealed class PlayerMotor : MonoBehaviour, IAnimationSource, IVisualOffset
     {
         public enum State
         {
@@ -31,11 +31,27 @@ namespace Zeldexile.Player
         public PlayerTargeting Targeting;
 
         [Header("Ground")]
-        /// <summary>The pace of the hero's captured walk (Meshy clip, about 1.5 m/s): the feet stay planted.</summary>
+        /// <summary>
+        /// Stick half tilted: the pace of the hero's captured walk (about 1.5 m/s), so the feet stay planted. A lighter
+        /// tilt walks slower.
+        /// </summary>
         [SerializeField] private float walkSpeed = 1.6f;
-        /// <summary>Steering speed in the air: jumps keep the reach they had before the walk slowed down.</summary>
+        /// <summary>Stick fully tilted (and the keyboard): the jog of the captured run loop, as in the reference game.</summary>
+        [SerializeField] private float runSpeed = 4f;
+        /// <summary>Stick tilt at which the walk ends and the jog starts blending in.</summary>
+        [SerializeField] private float walkTilt = 0.5f;
+        /// <summary>Steering speed in the air.</summary>
         [SerializeField] private float airSpeed = 4f;
         [SerializeField] private float sprintSpeed = 7f;
+        /// <summary>Speeding up to the jog (m/s²): about 0.15 s from standing.</summary>
+        [SerializeField] private float acceleration = 28f;
+        /// <summary>Speeding up from the jog into the sprint (m/s²).</summary>
+        [SerializeField] private float sprintAcceleration = 12f;
+        /// <summary>Slowing down when the stick is released or eased (m/s²): a jog stops in under 0.2 s.</summary>
+        [SerializeField] private float deceleration = 22f;
+        /// <summary>Fastest body turn standing and at a sprint (degrees/s): pivots on the spot, carves wide at speed.</summary>
+        [SerializeField] private float turnRateStanding = 1080f;
+        [SerializeField] private float turnRateSprinting = 420f;
         /// <summary>Crouched walk, about the pace of the hero's crouched-walk clip.</summary>
         [SerializeField] private float crouchSpeed = 0.9f;
         [SerializeField] private float jumpHeight = 1.3f;
@@ -83,6 +99,16 @@ namespace Zeldexile.Player
         private float _fallStartY;
         private bool _fallTracked;
         private float _swimDashUntil;
+        /// <summary>Visual lag behind a sudden height change on the ground (a step up or down), easing back to zero.</summary>
+        private float _stepLag;
+        private float _lastY;
+        private bool _wasGrounded;
+
+        /// <summary>
+        /// How far the drawn body sits from the transform: down by the controller's skin (the capsule hovers that much
+        /// above what it stands on), plus the eased step lag.
+        /// </summary>
+        public float VisualOffsetY => -_controller.skinWidth + _stepLag;
 
         /// <summary>True while time is slowed for aiming in the air.</summary>
         public bool Focusing { get; private set; }
@@ -103,6 +129,13 @@ namespace Zeldexile.Player
         public Vector3 Velocity => _velocity;
         public float MaxGroundSpeed => sprintSpeed;
         public bool IsGrounded => Current == State.Grounded;
+        /// <summary>On the ground with the run button held and stamina to spend (the sprint clip plays).</summary>
+        public bool Sprinting { get; private set; }
+        /// <summary>
+        /// Set by combat while a full-body clip plays (sword drawn or put away, a basic combo swing): the hero stops and
+        /// keeps facing where he faces, so the clip's feet stay where it planted them. Jumping and dodging still work.
+        /// </summary>
+        public System.Func<bool> Rooted;
 
         public Locomotion Locomotion
         {
@@ -140,6 +173,7 @@ namespace Zeldexile.Player
             _velocity = Vector3.zero;
             _external = Vector3.zero;
             _fallTracked = false;
+            _stepLag = 0f;
             Current = State.Airborne;
         }
 
@@ -173,6 +207,32 @@ namespace Zeldexile.Player
 
             _external = Vector3.Lerp(_external, Vector3.zero, 1f - Mathf.Exp(-3f * dt));
             if (transform.position.y < -30f) Respawn();
+            SmoothSteps(dt);
+        }
+
+        /// <summary>
+        /// The controller pops up steps (and snaps down them) in one frame. More height change than the slope allows
+        /// becomes a lag of the drawn body that eases out, so the hero steps instead of teleporting.
+        /// </summary>
+        private void SmoothSteps(float dt)
+        {
+            var y = transform.position.y;
+            var grounded = Current == State.Grounded;
+            if (grounded && _wasGrounded && dt > 0f)
+            {
+                var flat = new Vector3(_velocity.x, 0f, _velocity.z).magnitude;
+                var allowed = flat * dt * 1.25f + 0.01f; // about a 50° slope
+                var dy = y - _lastY;
+                if (Mathf.Abs(dy) > allowed) _stepLag -= dy - Mathf.Sign(dy) * allowed;
+            }
+            else if (!grounded)
+            {
+                _stepLag = Mathf.MoveTowards(_stepLag, 0f, 4f * dt);
+            }
+
+            _stepLag = Mathf.Clamp(Mathf.Lerp(_stepLag, 0f, 1f - Mathf.Exp(-14f * dt)), -0.5f, 0.5f);
+            _lastY = y;
+            _wasGrounded = grounded;
         }
 
         private Vector3 CameraRelative(Vector2 input)
@@ -209,19 +269,55 @@ namespace Zeldexile.Player
             }
 
             if (Input.CrouchPressed) Crouching = !Crouching;
-            var speed = Crouching ? crouchSpeed : walkSpeed;
-            if (Input.Sprint && moveDir.sqrMagnitude > 0.01f && Stamina.Drain(sprintCost * dt))
+            // Stick tilt sets the pace: a light tilt walks, a full tilt jogs; the run button sprints.
+            var tilt = Mathf.Clamp01(moveDir.magnitude);
+            var target = Crouching ? crouchSpeed * tilt
+                : tilt <= walkTilt ? walkSpeed * tilt / walkTilt
+                : Mathf.Lerp(walkSpeed, runSpeed, (tilt - walkTilt) / (1f - walkTilt));
+            var rooted = Rooted != null && Rooted();
+            Sprinting = false;
+            if (rooted)
             {
-                speed = sprintSpeed;
+                moveDir = Vector3.zero;
+                tilt = 0f;
+                target = 0f;
+            }
+            else if (Input.Sprint && tilt > 0.1f && Stamina.Drain(sprintCost * dt))
+            {
+                target = sprintSpeed;
                 Crouching = false;
+                Sprinting = true;
             }
 
-            speed *= SpeedFactor();
-
-            var horizontal = moveDir * speed;
-            _velocity = new Vector3(horizontal.x, -2f, horizontal.z);
+            target *= SpeedFactor();
 
             var locked = Targeting != null && Targeting.Target != null;
+            var horizontal = new Vector3(_velocity.x, 0f, _velocity.z);
+            var current = horizontal.magnitude;
+            var wanted = tilt > 0.01f ? moveDir / tilt : Vector3.zero;
+            if (locked)
+            {
+                // Strafing: the velocity follows the stick directly while the body faces the target.
+                var rate = target > current ? acceleration : deceleration;
+                horizontal = Vector3.MoveTowards(horizontal, wanted * target, rate * dt);
+            }
+            else
+            {
+                // The hero runs where the body faces and the body turns toward the stick, quickly when slow and in
+                // wide arcs at a sprint. Facing far from the stick, he slows down to pivot instead of moonwalking.
+                if (tilt > 0.01f)
+                {
+                    Face(wanted, dt, Mathf.Lerp(turnRateStanding, turnRateSprinting, current / sprintSpeed));
+                    var align = Vector3.Dot(Flat(transform.forward), wanted);
+                    target *= Mathf.InverseLerp(-0.5f, 0.4f, align);
+                }
+
+                var rate = target > current ? (current >= runSpeed ? sprintAcceleration : acceleration) : deceleration;
+                horizontal = Flat(transform.forward) * Mathf.MoveTowards(current, target, rate * dt);
+            }
+
+            _velocity = new Vector3(horizontal.x, -2f, horizontal.z);
+
             if (Input.DodgePressed || (locked && Input.JumpPressed && !Input.GuardHeld))
             {
                 Dodge(moveDir, locked);
@@ -245,12 +341,37 @@ namespace Zeldexile.Player
                 to.y = 0f;
                 Face(to.normalized, dt);
             }
-            else
+
+            if (Current != State.Grounded)
             {
-                Face(moveDir, dt);
+                _controller.Move((_velocity + _external) * dt);
+                return;
             }
 
             _controller.Move((_velocity + _external) * dt);
+            if (!_controller.isGrounded) SnapToGround();
+        }
+
+        private static Vector3 Flat(Vector3 v)
+        {
+            v.y = 0f;
+            return v.sqrMagnitude > 1e-6f ? v.normalized : Vector3.forward;
+        }
+
+        /// <summary>
+        /// Running down a slope or over a crest the capsule outruns the ground and would take off; within a step's
+        /// height of walkable ground it is pulled back down onto it.
+        /// </summary>
+        private void SnapToGround()
+        {
+            var radius = _controller.radius * 0.95f;
+            var origin = transform.position + Vector3.up * (_controller.radius + 0.05f);
+            var reach = _controller.stepOffset + 0.1f;
+            if (!Physics.SphereCast(origin, radius, Vector3.down, out var hit, reach + 0.05f, Physics.DefaultRaycastLayers,
+                    QueryTriggerInteraction.Ignore))
+                return;
+            if (Vector3.Angle(hit.normal, Vector3.up) > _controller.slopeLimit + 5f) return;
+            _controller.Move(Vector3.down * (hit.distance + 0.02f));
         }
 
         /// <summary>
@@ -548,11 +669,15 @@ namespace Zeldexile.Player
             Character.Health.TakeDamage(damage, Element.None, fixedDamage: true);
         }
 
-        private void Face(Vector3 moveDir, float dt)
+        /// <summary>Turns the body toward a direction: eases in like a spring, never faster than <paramref name="maxRate"/> degrees/s.</summary>
+        private void Face(Vector3 moveDir, float dt, float maxRate = 720f)
         {
-            if (moveDir.sqrMagnitude < 0.01f) return;
+            moveDir.y = 0f;
+            if (moveDir.sqrMagnitude < 0.0001f) return;
             var target = Quaternion.LookRotation(moveDir, Vector3.up);
-            transform.rotation = Quaternion.Slerp(transform.rotation, target, 1f - Mathf.Exp(-12f * dt));
+            var angle = Quaternion.Angle(transform.rotation, target);
+            var step = Mathf.Min(angle * (1f - Mathf.Exp(-14f * dt)), maxRate * dt);
+            transform.rotation = Quaternion.RotateTowards(transform.rotation, target, step);
         }
     }
 }

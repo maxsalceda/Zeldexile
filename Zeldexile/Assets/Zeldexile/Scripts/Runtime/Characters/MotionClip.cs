@@ -22,6 +22,9 @@ namespace Zeldexile.Characters
 
         private const float SamplesPerSecond = 30f;
 
+        /// <summary>Sampled point beside the head, along the head bone's lateral axis (see <see cref="Sample(GameObject, AnimationClip, float)"/>).</summary>
+        private const string HeadSide = "HeadSide";
+
         private static readonly Dictionary<string, MotionClip> Cache = new Dictionary<string, MotionClip>();
 
         private CharacterAnimator.Pose[] _frames;
@@ -207,6 +210,14 @@ namespace Zeldexile.Characters
                 // In world units: a clip FBX without a mesh imports its scaled armature node as the root.
                 foreach (var pair in bones)
                     frame[pair.Key] = Quaternion.Inverse(go.transform.rotation) * (pair.Value.position - go.transform.position);
+                // Points alone cannot tell where the head turns (nothing sits beside it): a point off the side of the
+                // head, along the head bone's own lateral axis, carries its yaw and roll through the same transforms.
+                if (bones.TryGetValue("HeadTop_End", out var top))
+                {
+                    var head = bones["Head"];
+                    var side = head.position + head.right * (top.position - head.position).magnitude;
+                    frame[HeadSide] = Quaternion.Inverse(go.transform.rotation) * (side - go.transform.position);
+                }
                 positions.Add(frame);
             }
 
@@ -224,6 +235,9 @@ namespace Zeldexile.Characters
             // The import already stands clips up (Y); a leaning gait (the crouched walk) would tilt the body-based
             // up and stand the trunk upright. Only a clip lying far off Y falls back to the body's own up.
             if (Vector3.Angle(up, Vector3.up) < 60f) up = Vector3.up;
+            // Unit vectors by hand, for clips at 1/100 scale (see Rebuild).
+            up /= Mathf.Max(1e-12f, up.magnitude);
+            right /= Mathf.Max(1e-12f, right.magnitude);
             var facing = Quaternion.LookRotation(Vector3.Cross(right, up), up);
             var toRig = Quaternion.Inverse(facing);
             foreach (var p in positions)
@@ -391,9 +405,17 @@ namespace Zeldexile.Characters
         /// </summary>
         private static CharacterAnimator.Pose Rebuild(Dictionary<string, Vector3> p, bool hasHeadTop)
         {
-            Quaternion Frame(Vector3 up, Vector3 right) => Quaternion.LookRotation(Vector3.Cross(right, up), up);
+            // Unit vectors by hand: a clip can come in at 1/100 scale (the whole body 0.016 units tall), where
+            // LookRotation and Vector3.normalized treat the bone vectors as zero and return no rotation at all.
+            Vector3 U(Vector3 v)
+            {
+                var m = v.magnitude;
+                return m > 0f ? v / m : v;
+            }
+
+            Quaternion Frame(Vector3 up, Vector3 right) => Quaternion.LookRotation(U(Vector3.Cross(U(right), U(up))), U(up));
             Quaternion Swing(Quaternion parent, Vector3 rest, Vector3 to) =>
-                Quaternion.FromToRotation(parent * Rest(rest), to) * parent;
+                Quaternion.FromToRotation(parent * Rest(rest), U(to)) * parent;
 
             var hipsRight = p["RightUpLeg"] - p["LeftUpLeg"];
             var chestRight = p["RightArm"] - p["LeftArm"];
@@ -401,7 +423,16 @@ namespace Zeldexile.Characters
             var hips = Frame(p["Spine"] - p["Hips"], hipsRight);
             var chest = Frame(p["Neck"] - p[chestBone], chestRight);
             var headUp = (hasHeadTop ? p["HeadTop_End"] : p["Head"] + (p["Head"] - p["Neck"])) - p["Head"];
-            var head = Frame(headUp, chestRight);
+            // The head bone's lateral axis turns with the head; its sign varies with the rig, so it is taken on the
+            // side the chest's right points to. Without it the head can only nod and tilt with the chest's yaw.
+            var headRight = chestRight;
+            if (p.TryGetValue(HeadSide, out var side))
+            {
+                headRight = side - p["Head"];
+                if (Vector3.Dot(headRight, chestRight) < 0f) headRight = -headRight;
+            }
+
+            var head = Frame(headUp, headRight);
 
             var armL = Swing(chest, new Vector3(-0.12f, -1f, 0f), p["LeftForeArm"] - p["LeftArm"]);
             var elbowL = Swing(armL, new Vector3(-0.08f, -1f, 0.08f), p["LeftHand"] - p["LeftForeArm"]);
@@ -419,8 +450,19 @@ namespace Zeldexile.Characters
 
             // Hands: aimed down the middle finger when the clip has fingers; the curl is the bend from the back of
             // the hand to the fingertips, shared over the three phalanges as the rig's finger joint expects.
-            var wristL = p.ContainsKey("LeftHandMiddle1") ? Swing(elbowL, new Vector3(-0.08f, -1f, 0.08f), p["LeftHandMiddle1"] - p["LeftHand"]) : elbowL;
-            var wristR = p.ContainsKey("RightHandMiddle1") ? Swing(elbowR, new Vector3(0.08f, -1f, 0.08f), p["RightHandMiddle1"] - p["RightHand"]) : elbowR;
+            // The Meshy rig has no middle finger: the knuckle midway between the index and the ring stands in for it.
+            Vector3? Knuckle(string side)
+            {
+                if (p.TryGetValue(side + "HandMiddle1", out var middle)) return middle;
+                if (p.TryGetValue(side + "HandIndex1", out var index) && p.TryGetValue(side + "HandRing1", out var ring))
+                    return (index + ring) * 0.5f;
+                return null;
+            }
+
+            var knuckleL = Knuckle("Left");
+            var knuckleR = Knuckle("Right");
+            var wristL = knuckleL.HasValue ? Swing(elbowL, new Vector3(-0.08f, -1f, 0.08f), knuckleL.Value - p["LeftHand"]) : elbowL;
+            var wristR = knuckleR.HasValue ? Swing(elbowR, new Vector3(0.08f, -1f, 0.08f), knuckleR.Value - p["RightHand"]) : elbowR;
             float Curl(string side)
             {
                 float total = 0f;

@@ -24,6 +24,8 @@ namespace Zeldexile.Characters
         /// <see cref="SkinnedRigDriver"/>. Takes precedence over <see cref="Model"/>, which stays as the fallback.
         /// </summary>
         public string SkinnedModel;
+        /// <summary>Captured standing loop; replaces the procedural idle (sway and breath) when standing still.</summary>
+        public string IdleClip;
         /// <summary>Captured walk and run loops for the skinned model (Resources/Models/Skinned/Animacoes).</summary>
         public string WalkClip;
         public string RunClip;
@@ -42,6 +44,15 @@ namespace Zeldexile.Characters
         public string KickClip;
         /// <summary>Captured climb loop (one cycle up a wall).</summary>
         public string ClimbClip;
+        /// <summary>
+        /// Clips played bone for bone, exactly as animated (<see cref="DirectClip"/>): the sprint (run button held),
+        /// the two swings of the basic sword combo, and drawing the sword from the waist sheath and putting it back.
+        /// </summary>
+        public string SprintClip;
+        public string BasicAttack1Clip;
+        public string BasicAttack2Clip;
+        public string DrawSwordClip;
+        public string SheatheSwordClip;
 
         public Color ColorFor(string slot)
         {
@@ -93,6 +104,7 @@ namespace Zeldexile.Characters
             Model = "heroi_anime",
             // heroi_meshy: the Meshy AI export of the same hero (sword and shield are part of its mesh).
             SkinnedModel = "heroi_meshy",
+            IdleClip = "heroi_parado",
             WalkClip = "heroi_andar",
             RunClip = "heroi_correr",
             SlashClip = "heroi_espada_combo",
@@ -105,7 +117,12 @@ namespace Zeldexile.Characters
             RunningJumpClip = "heroi_pular_correndo",
             VaultClip = "heroi_subir_beirada",
             KickClip = "heroi_chute",
-            ClimbClip = "heroi_escalar"
+            ClimbClip = "heroi_escalar",
+            SprintClip = "heroi_correr_rapido",
+            BasicAttack1Clip = "heroi_ataque_basico_1",
+            BasicAttack2Clip = "heroi_ataque_basico_2",
+            DrawSwordClip = "heroi_sacar_espada",
+            SheatheSwordClip = "heroi_guardar_espada"
         };
 
         /// <summary>A creature style tinted by its tier: red, blue, black or silver.</summary>
@@ -191,6 +208,8 @@ namespace Zeldexile.Characters
         /// <summary>Secondary bone: the satchel on the right hip.</summary>
         public Transform Bag;
         public Transform Glider;
+        /// <summary>Captured standing loop; when set, the hero stands with it instead of the procedural idle.</summary>
+        public MotionClip Idle;
         /// <summary>Captured gait loops; when set, the animator walks and runs with them instead of its own curves.</summary>
         public MotionClip Walk;
         public MotionClip Run;
@@ -205,6 +224,13 @@ namespace Zeldexile.Characters
         public MotionClip Vault;
         public MotionClip Kick;
         public MotionClip Climb;
+        /// <summary>Bone-for-bone clips on the skinned hero (null on other rigs), and the layer that plays them.</summary>
+        public DirectLayer Direct;
+        public DirectClip Sprint;
+        public DirectClip BasicAttack1;
+        public DirectClip BasicAttack2;
+        public DirectClip DrawSword;
+        public DirectClip SheatheSword;
 
         public float HipsHeight { get; internal set; }
 
