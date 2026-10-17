@@ -27,6 +27,8 @@ namespace Zeldexile.Characters
         /// <summary>Captured walk and run loops for the skinned model (Resources/Models/Skinned/Animacoes).</summary>
         public string WalkClip;
         public string RunClip;
+        /// <summary>Captured sword combo; its strikes replace the procedural one-handed and heavy swings.</summary>
+        public string SlashClip;
 
         public Color ColorFor(string slot)
         {
@@ -79,7 +81,8 @@ namespace Zeldexile.Characters
             // heroi_meshy: the Meshy AI export of the same hero (sword and shield are part of its mesh).
             SkinnedModel = "heroi_meshy",
             WalkClip = "heroi_meshy_andar",
-            RunClip = "heroi_meshy_correr"
+            RunClip = "heroi_meshy_correr",
+            SlashClip = "heroi_espada_combo"
         };
 
         /// <summary>A creature style tinted by its tier: red, blue, black or silver.</summary>
@@ -168,6 +171,7 @@ namespace Zeldexile.Characters
         /// <summary>Captured gait loops; when set, the animator walks and runs with them instead of its own curves.</summary>
         public MotionClip Walk;
         public MotionClip Run;
+        public MotionClip Slash;
 
         public float HipsHeight { get; internal set; }
 

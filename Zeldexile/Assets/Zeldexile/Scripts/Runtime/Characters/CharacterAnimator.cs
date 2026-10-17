@@ -95,6 +95,7 @@ namespace Zeldexile.Characters
 
         private float _phase;
         private float _clipProgress;
+        private float _groundSpeed;
         private float _actionStart = -10f;
         private float _actionDuration;
         private int _actionIndex;
@@ -116,6 +117,9 @@ namespace Zeldexile.Characters
             CurrentAction = kind;
             _actionStart = Time.time;
             _actionDuration = duration > 0f ? duration : DefaultDuration(kind);
+            // Captured swings carry a real wind-up and follow-through: they get a little more time.
+            if (duration <= 0f && HasCapturedSwings && (kind == ActionKind.SlashLight || kind == ActionKind.SlashHeavy))
+                _actionDuration *= 1.35f;
             _heldProgress = -1f;
         }
 
@@ -159,6 +163,7 @@ namespace Zeldexile.Characters
             var speed = horizontal.magnitude;
             var run = Mathf.Clamp01(speed / Mathf.Max(0.1f, Source.MaxGroundSpeed));
             var grounded = Source.Locomotion == Locomotion.Grounded;
+            _groundSpeed = grounded ? speed : 0f;
 
             Pose pose;
             switch (Source.Locomotion)
@@ -696,8 +701,14 @@ namespace Zeldexile.Characters
             Pose target;
             switch (CurrentAction)
             {
-                case ActionKind.SlashLight: target = SlashLight(t, _actionIndex); break;
-                case ActionKind.SlashHeavy: target = SlashHeavy(t); break;
+                case ActionKind.SlashLight:
+                    target = HasCapturedSwings
+                        ? CapturedSwing(t, _actionIndex % Mathf.Min(2, Rig.Slash.Strikes.Count), pose)
+                        : SlashLight(t, _actionIndex);
+                    break;
+                case ActionKind.SlashHeavy:
+                    target = HasCapturedSwings ? CapturedSwing(t, Rig.Slash.Strikes.Count - 1, pose) : SlashHeavy(t);
+                    break;
                 case ActionKind.Thrust: target = Thrust(t); break;
                 case ActionKind.Throw: target = Throw(t); break;
                 case ActionKind.Shoot: target = Shoot(t, pose); break;
@@ -713,6 +724,39 @@ namespace Zeldexile.Characters
 
             target.ShowGlider = pose.ShowGlider;
             pose = Mix(pose, target, Mathf.Clamp01(weight));
+        }
+
+        private bool HasCapturedSwings => Rig != null && Rig.Slash != null && Rig.Slash.Strikes.Count > 0;
+
+        /// <summary>
+        /// One swing of the captured sword combo (<see cref="CharacterRig.Slash"/>): its wind-up fills the first 40 %
+        /// of the action, the peak lands there, the follow-through takes the rest. While the hero moves, the legs
+        /// keep most of the gait so a swing on the run does not freeze them; both hands keep their grip.
+        /// </summary>
+        private Pose CapturedSwing(float t, int strike, Pose current)
+        {
+            var (start, peak, end) = Rig.Slash.Strikes[Mathf.Clamp(strike, 0, Rig.Slash.Strikes.Count - 1)];
+            var progress = t < 0.4f ? Mathf.Lerp(start, peak, t / 0.4f) : Mathf.Lerp(peak, end, (t - 0.4f) / 0.6f);
+            var pose = Rig.Slash.Sample(progress);
+            pose.FingersR = E(Grip);
+            if (ShieldInHand) pose.FingersL = E(Grip);
+            var keepGait = Mathf.Clamp01(_groundSpeed / 1.2f) * 0.75f;
+            if (keepGait > 0f)
+            {
+                var legs = Mix(pose, current, keepGait);
+                pose.LegL = legs.LegL;
+                pose.LegR = legs.LegR;
+                pose.KneeL = legs.KneeL;
+                pose.KneeR = legs.KneeR;
+                pose.AnkleL = legs.AnkleL;
+                pose.AnkleR = legs.AnkleR;
+                pose.ToesL = legs.ToesL;
+                pose.ToesR = legs.ToesR;
+                pose.FootFreeL = legs.FootFreeL;
+                pose.FootFreeR = legs.FootFreeR;
+            }
+
+            return pose;
         }
 
         /// <summary>Strikes reach full weight within the first 12 % (the wind-up shows) and release over the last 25 %.</summary>

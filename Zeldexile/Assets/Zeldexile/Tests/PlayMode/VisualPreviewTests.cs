@@ -206,6 +206,9 @@ namespace Zeldexile.Tests
                     kind == "walk" ? new Vector3(0f, 0f, WalkSpeed) : kind == "run" ? new Vector3(0f, 0f, 7.5f) : Vector3.zero,
                     ActionKind.None, 0f, moving ? "" : "armed");
                 var animator = hero.GetComponent<CharacterAnimator>();
+                if (row == 0 && animator.Rig.Slash != null)
+                    foreach (var (start, peak, end) in animator.Rig.Slash.Strikes)
+                        Debug.Log($"Golpe capturado: {start:F2} - {peak:F2} - {end:F2} de {animator.Rig.Slash.Duration:F2} s");
                 // FixedSource velocity is world space; the walk reads its length only.
                 for (var i = 0; i < 60; i++) yield return null;
 

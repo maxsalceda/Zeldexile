@@ -63,6 +63,9 @@ namespace Zeldexile.Characters
                 ? P("RightUpLeg") - P("LeftUpLeg") : P("RightArm") - P("LeftArm"), up);
             var frame = Quaternion.LookRotation(Vector3.Cross(right, up), up);
             model.transform.localRotation = Quaternion.Inverse(frame) * model.transform.localRotation;
+            // Finger bend axes are read here, in the T-pose (palms down), before the arms come down.
+            var hands = new List<(string side, List<FingerChain> fingers)>();
+            foreach (var side in new[] { "Left", "Right" }) hands.Add((side, FingerChains(bones, side, -r.up)));
             StandUp(bones, r);
 
             var (low, high) = VerticalExtent(bones, r);
@@ -117,12 +120,25 @@ namespace Zeldexile.Characters
             rig.ToesL = Joint("Ponta do pé E", rig.AnkleL);
             rig.ToesR = Joint("Ponta do pé D", rig.AnkleR);
 
+            foreach (var (side, fingers) in hands)
+            {
+                if (fingers.Count == 0) continue;
+                var wrist = side == "Left" ? rig.WristL : rig.WristR;
+                if (wrist == null) continue;
+                var curl = new GameObject(side == "Left" ? "Dedos E" : "Dedos D").transform;
+                curl.SetParent(wrist, false);
+                if (side == "Left") rig.FingersL = curl;
+                else rig.FingersR = curl;
+                driver.AddHand(curl, fingers);
+            }
+
             rig.Glider = Glider(r, upper, style);
             BorrowGear(rig, style);
             rig.HipsHeight = rig.Hips.localPosition.y;
             rig.FindContacts(0f);
             rig.Walk = MotionClip.Load(style.WalkClip);
             rig.Run = MotionClip.Load(style.RunClip);
+            rig.Slash = MotionClip.Load(style.SlashClip);
             return rig;
         }
 
@@ -136,6 +152,54 @@ namespace Zeldexile.Characters
             new[] { "RightUpLeg" }, new[] { "RightLeg" }, new[] { "RightFoot" }, new[] { "RightToeBase" }, new[] { "RightToe_End" },
         };
 
+        /// <summary>Mixamo's finger bones: thumb to pinky, phalanges 1 to 3 (4 is the tip end).</summary>
+        internal static readonly string[] Fingers = { "Thumb", "Index", "Middle", "Ring", "Pinky" };
+
+        /// <summary>
+        /// The phalanges of one finger, each with the axis (in its own local space) about which it folds toward the
+        /// palm, and its rest rotation.
+        /// </summary>
+        internal sealed class FingerChain
+        {
+            public Transform[] Bones;
+            public Vector3[] Axes;
+            public Quaternion[] Rest;
+            public bool Thumb;
+        }
+
+        /// <summary>
+        /// One hand's fingers, read in the T-pose where the palm faces <paramref name="palm"/>: each phalanx folds
+        /// about the axis across the finger, in the sense that brings it toward the palm.
+        /// </summary>
+        private static List<FingerChain> FingerChains(Dictionary<string, Transform> bones, string side, Vector3 palm)
+        {
+            var chains = new List<FingerChain>();
+            foreach (var finger in Fingers)
+            {
+                var chain = new List<Transform>();
+                for (var i = 1; i <= 3; i++)
+                    if (bones.TryGetValue(side + "Hand" + finger + i, out var b)) chain.Add(b);
+                if (chain.Count < 2) continue;
+                bones.TryGetValue(side + "Hand" + finger + "4", out var tip);
+                var axes = new Vector3[chain.Count];
+                var rest = new Quaternion[chain.Count];
+                for (var i = 0; i < chain.Count; i++)
+                {
+                    var next = i + 1 < chain.Count ? chain[i + 1] : tip;
+                    var along = next != null ? next.position - chain[i].position : chain[i].position - chain[i - 1].position;
+                    var axis = Vector3.Cross(along, palm).normalized;
+                    // Fold toward the palm whatever the handedness of the rotation.
+                    if (Vector3.Dot(Quaternion.AngleAxis(30f, axis) * along, palm) < 0f) axis = -axis;
+                    axes[i] = Quaternion.Inverse(chain[i].rotation) * axis;
+                    rest[i] = chain[i].localRotation;
+                }
+
+                chains.Add(new FingerChain { Bones = chain.ToArray(), Axes = axes, Rest = rest, Thumb = finger == "Thumb" });
+            }
+
+            return chains;
+        }
+
         /// <summary>
         /// The model's bones under Mixamo's names, whatever the export called them: no "mixamorig:" prefix, any
         /// letter case. The spine is named by position, not by name: Meshy's own rig counts it top-down (Spine02,
@@ -145,6 +209,11 @@ namespace Zeldexile.Characters
         internal static Dictionary<string, Transform> CanonicalBones(Transform model)
         {
             var raw = new Dictionary<string, Transform>(System.StringComparer.OrdinalIgnoreCase);
+            var names = new List<string[]>(BoneNames);
+            foreach (var side in new[] { "Left", "Right" })
+                foreach (var finger in Fingers)
+                    for (var i = 1; i <= 4; i++)
+                        names.Add(new[] { side + "Hand" + finger + i });
             foreach (var t in model.GetComponentsInChildren<Transform>(true))
             {
                 var colon = t.name.LastIndexOf(':');
@@ -153,7 +222,7 @@ namespace Zeldexile.Characters
             }
 
             var bones = new Dictionary<string, Transform>();
-            foreach (var spellings in BoneNames)
+            foreach (var spellings in names)
                 foreach (var spelling in spellings)
                     if (raw.TryGetValue(spelling, out var t))
                     {
@@ -423,11 +492,35 @@ namespace Zeldexile.Characters
             }
         }
 
+        private readonly List<(Transform curl, List<SkinnedHero.FingerChain> fingers)> _hands =
+            new List<(Transform, List<SkinnedHero.FingerChain>)>();
+
+        /// <summary>
+        /// A hand whose fingers follow <paramref name="curl"/>, the rig's "Dedos" joint: the animator's finger pose
+        /// (-X closes the hand) folds every phalanx toward the palm, the thumb half as much.
+        /// </summary>
+        internal void AddHand(Transform curl, List<SkinnedHero.FingerChain> fingers) => _hands.Add((curl, fingers));
+
+        private static readonly float[] PhalanxShare = { 0.85f, 1.1f, 0.75f };
+
         private void LateUpdate()
         {
             if (_hipsBone != null) _hipsBone.position = _hipsJoint.position;
             foreach (var (joint, bone, offset) in _pairs)
                 bone.rotation = joint.rotation * offset;
+
+            foreach (var (curl, fingers) in _hands)
+            {
+                var x = curl.localEulerAngles.x;
+                if (x > 180f) x -= 360f;
+                var fold = Mathf.Clamp(-x, -10f, 95f);
+                foreach (var finger in fingers)
+                    for (var i = 0; i < finger.Bones.Length; i++)
+                    {
+                        var angle = fold * PhalanxShare[Mathf.Min(i, PhalanxShare.Length - 1)] * (finger.Thumb ? 0.45f : 1f);
+                        finger.Bones[i].localRotation = finger.Rest[i] * Quaternion.AngleAxis(angle, finger.Axes[i]);
+                    }
+            }
         }
     }
 }

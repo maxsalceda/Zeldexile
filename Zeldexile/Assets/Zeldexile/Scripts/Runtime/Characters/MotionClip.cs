@@ -36,6 +36,12 @@ namespace Zeldexile.Characters
         /// <summary>Loop progress (0..1) where the left heel strikes: phase 0 of the animator's own gait.</summary>
         public float LeftStrike { get; private set; }
 
+        /// <summary>
+        /// The swings of an attack clip, in clip progress (0..1): each runs from the wind-up before a peak of the
+        /// right hand's speed to the follow-through after it. Empty for a clip with no fast hand motion.
+        /// </summary>
+        public readonly List<(float start, float peak, float end)> Strikes = new List<(float, float, float)>();
+
         /// <summary>The clip "Resources/Models/Skinned/Animacoes/&lt;name&gt;", sampled once; null when missing.</summary>
         public static MotionClip Load(string name)
         {
@@ -143,7 +149,50 @@ namespace Zeldexile.Characters
 
             slides.Sort();
             motion.Speed = Mathf.Abs(slides[slides.Count / 2]) * scale;
+            FindStrikes(motion, positions, clip.length);
             return motion;
+        }
+
+        /// <summary>
+        /// Peaks of the right hand's speed (smoothed) above half the fastest one, at least 0.3 s apart. Each swing
+        /// starts 0.4 s before its peak (the wind-up) and ends 0.35 s after it, never past the middle of the gap
+        /// to its neighbours.
+        /// </summary>
+        private static void FindStrikes(MotionClip motion, List<Dictionary<string, Vector3>> positions, float length)
+        {
+            var n = positions.Count;
+            if (!positions[0].ContainsKey("RightHand") || n < 6) return;
+            var dt = length / n;
+            var speed = new float[n];
+            for (var i = 1; i < n; i++) speed[i] = (positions[i]["RightHand"] - positions[i - 1]["RightHand"]).magnitude / dt;
+            var smooth = new float[n];
+            for (var i = 0; i < n; i++)
+                smooth[i] = (speed[Mathf.Max(0, i - 1)] + speed[i] + speed[Mathf.Min(n - 1, i + 1)]) / 3f;
+            var max = 0f;
+            foreach (var v in smooth) max = Mathf.Max(max, v);
+            if (max <= 0f) return;
+
+            var peaks = new List<int>();
+            var gap = Mathf.CeilToInt(0.3f / dt);
+            for (var i = 1; i < n - 1; i++)
+            {
+                if (smooth[i] < max * 0.5f || smooth[i] < smooth[i - 1] || smooth[i] < smooth[i + 1]) continue;
+                if (peaks.Count > 0 && i - peaks[peaks.Count - 1] < gap)
+                {
+                    if (smooth[i] > smooth[peaks[peaks.Count - 1]]) peaks[peaks.Count - 1] = i;
+                    continue;
+                }
+
+                peaks.Add(i);
+            }
+
+            for (var k = 0; k < peaks.Count; k++)
+            {
+                var t = (float)peaks[k] / n;
+                var before = k > 0 ? (peaks[k - 1] + peaks[k]) * 0.5f / n : 0f;
+                var after = k + 1 < peaks.Count ? (peaks[k] + peaks[k + 1]) * 0.5f / n : 1f;
+                motion.Strikes.Add((Mathf.Max(before, t - 0.4f / length), t, Mathf.Min(after, t + 0.35f / length)));
+            }
         }
 
         private static Vector3 Rest(Vector3 dir) => dir.normalized;
@@ -180,6 +229,26 @@ namespace Zeldexile.Characters
             var toesL = p.ContainsKey("LeftToe_End") ? Swing(ankleL, Vector3.forward, p["LeftToe_End"] - p["LeftToeBase"]) : ankleL;
             var toesR = p.ContainsKey("RightToe_End") ? Swing(ankleR, Vector3.forward, p["RightToe_End"] - p["RightToeBase"]) : ankleR;
 
+            // Hands: aimed down the middle finger when the clip has fingers; the curl is the bend from the back of
+            // the hand to the fingertips, shared over the three phalanges as the rig's finger joint expects.
+            var wristL = p.ContainsKey("LeftHandMiddle1") ? Swing(elbowL, new Vector3(-0.08f, -1f, 0.08f), p["LeftHandMiddle1"] - p["LeftHand"]) : elbowL;
+            var wristR = p.ContainsKey("RightHandMiddle1") ? Swing(elbowR, new Vector3(0.08f, -1f, 0.08f), p["RightHandMiddle1"] - p["RightHand"]) : elbowR;
+            float Curl(string side)
+            {
+                float total = 0f;
+                var count = 0;
+                foreach (var f in new[] { "Index", "Middle", "Ring" })
+                {
+                    string a = side + "Hand" + f + "1", b = side + "Hand" + f + "3", c = side + "Hand" + f + "4";
+                    if (!p.ContainsKey(a) || !p.ContainsKey(b)) continue;
+                    var tip = p.ContainsKey(c) ? p[c] - p[b] : p[b] - p[a];
+                    total += Vector3.Angle(p[a] - p[side + "Hand"], tip);
+                    count++;
+                }
+
+                return count == 0 ? 18f : total / count / 2.7f;
+            }
+
             Quaternion Local(Quaternion parent, Quaternion child) => Quaternion.Inverse(parent) * child;
             return new CharacterAnimator.Pose
             {
@@ -190,10 +259,10 @@ namespace Zeldexile.Characters
                 ArmR = Local(chest, armR),
                 ElbowL = Local(armL, elbowL),
                 ElbowR = Local(armR, elbowR),
-                WristL = Quaternion.identity,
-                WristR = Quaternion.identity,
-                FingersL = Quaternion.Euler(-18f, 0f, 0f),
-                FingersR = Quaternion.Euler(-18f, 0f, 0f),
+                WristL = Local(elbowL, wristL),
+                WristR = Local(elbowR, wristR),
+                FingersL = Quaternion.Euler(-Curl("Left"), 0f, 0f),
+                FingersR = Quaternion.Euler(-Curl("Right"), 0f, 0f),
                 LegL = Local(hips, legL),
                 LegR = Local(hips, legR),
                 KneeL = Local(legL, kneeL),
