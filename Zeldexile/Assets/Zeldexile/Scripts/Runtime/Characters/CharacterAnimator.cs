@@ -470,21 +470,23 @@ namespace Zeldexile.Characters
             var elbowR = elbowBase - Mathf.Max(0f, armR) * 0.5f;
 
             var kneeSoft = 6f * idle;
+            // Standing: feet a little apart, and a visible breath (chest rises, head eases back, arms lift a touch).
+            var stance = 6f * idle;
             return new Pose
             {
                 Hips = E(0f, pelvisYaw, pelvisRoll),
-                Torso = E(lean + breathe * 1.5f, -pelvisYaw * 1.6f, -pelvisRoll * 0.7f),
-                Head = E(-lean * 0.5f, pelvisYaw * 0.6f + lookAround, pelvisRoll * 0.3f),
-                ArmL = E(-armL, 0f, -6f - idle * 4f - runW * 6f),
-                ArmR = Armed ? E(-26f - armR * 0.35f, -10f, 14f) : E(-armR, 0f, 6f + idle * 4f + runW * 6f),
+                Torso = E(lean - breathe * 2.5f, -pelvisYaw * 1.6f, -pelvisRoll * 0.7f),
+                Head = E(-lean * 0.5f + breathe * 1.5f, pelvisYaw * 0.6f + lookAround, pelvisRoll * 0.3f),
+                ArmL = E(-armL, 0f, -6f - idle * 4f - runW * 6f - breathe * 1.5f),
+                ArmR = Armed ? E(-26f - armR * 0.35f, -10f, 14f + breathe * 1.5f) : E(-armR, 0f, 6f + idle * 4f + runW * 6f + breathe * 1.5f),
                 ElbowL = E(ShieldInHand ? Mathf.Min(-22f, elbowBase * 0.6f) : elbowL),
                 ElbowR = Armed ? E(-42f - runW * 20f) : E(elbowR),
                 WristL = E(-6f),
                 WristR = Armed ? E(-12f) : E(-6f),
                 FingersL = E(ShieldInHand ? Grip : Relaxed - 30f * runW),
                 FingersR = E(Armed ? Grip : Relaxed - 30f * runW),
-                LegL = E(-Hip(pL) - 3f * idle, 0f, -shift * 2f),
-                LegR = E(-Hip(pR) - 3f * idle, 0f, -shift * 2f),
+                LegL = E(-Hip(pL) - 3f * idle, 0f, -shift * 2f - stance),
+                LegR = E(-Hip(pR) - 3f * idle, 0f, -shift * 2f + stance),
                 KneeL = E(Knee(pL) + kneeSoft + Mathf.Max(0f, -shift) * 8f),
                 KneeR = E(Knee(pR) + kneeSoft + Mathf.Max(0f, shift) * 8f),
                 AnkleL = E(Ankle(pL)),
@@ -498,8 +500,9 @@ namespace Zeldexile.Characters
 
         /// <summary>
         /// Walk and run from the captured loops (<see cref="CharacterRig.Walk"/>, <see cref="CharacterRig.Run"/>).
-        /// Each loop plays at the cadence that keeps its planted foot still on the ground, up to 1.9 times its own
-        /// pace; between the two speeds the loops cross-fade on a shared, heel-strike-aligned progress. Standing
+        /// Each loop plays at the cadence that keeps its planted foot still on the ground, up to 1.4 times its own
+        /// pace (then the stride lengthens); between the two speeds the loops cross-fade on a shared,
+        /// heel-strike-aligned progress. Standing
         /// still, the procedural idle takes over. On top of that:
         /// <list type="bullet">
         /// <item>crouched, the crouched-walk loop replaces the walk (and holds its last step when stopped);</item>
@@ -529,12 +532,19 @@ namespace Zeldexile.Characters
                 loop = Mathf.Lerp(loop, crouch.Duration, _crouchWeight);
             }
 
-            if (speed > 0.05f) _clipProgress += Mathf.Min(speed / Mathf.Max(0.05f, cycle), 1.9f / loop) * dt;
+            // Cadence: the loop plays at the rate that keeps the planted foot still, but never more than 1.4 times
+            // its own pace (faster reads as a frantic march). Beyond that the stride lengthens instead: legs and
+            // arms swing further from rest, so a 7 m/s sprint on a 4 m/s capture still covers its ground.
+            var wanted = speed / Mathf.Max(0.05f, cycle);
+            var rate = Mathf.Min(wanted, 1.4f / loop);
+            if (speed > 0.05f) _clipProgress += rate * dt;
+            var stride = Mathf.Clamp(wanted / Mathf.Max(0.01f, rate), 1f, 1.3f);
 
             Transitions(speed, horizontal, walk, dt);
 
             var gait = walk.Sample(_clipProgress + walk.LeftStrike);
             if (runW > 0f) gait = Mix(gait, runClip.Sample(_clipProgress + runClip.LeftStrike), runW);
+            if (stride > 1.001f) Lengthen(ref gait, stride);
 
             // Turning: the turning loop leans into the curve; it was captured turning left.
             var turnTarget = Rig.TurnLeft != null
@@ -579,6 +589,23 @@ namespace Zeldexile.Characters
             }
 
             return pose;
+        }
+
+        /// <summary>
+        /// Exaggerates a gait beyond its capture: thighs and arms swing <paramref name="k"/> times further from rest,
+        /// knees half as much more (a fully scaled knee would fold the leg double).
+        /// </summary>
+        private static void Lengthen(ref Pose p, float k)
+        {
+            Quaternion A(Quaternion q, float f) =>
+                q.x == 0f && q.y == 0f && q.z == 0f && q.w == 0f ? q : Quaternion.SlerpUnclamped(Quaternion.identity, q, f);
+            var knee = 1f + (k - 1f) * 0.5f;
+            p.LegL = A(p.LegL, k);
+            p.LegR = A(p.LegR, k);
+            p.KneeL = A(p.KneeL, knee);
+            p.KneeR = A(p.KneeR, knee);
+            p.ArmL = A(p.ArmL, k);
+            p.ArmR = A(p.ArmR, k);
         }
 
         /// <summary>Watches speed, heading and turning to start the one-shot transition clips.</summary>

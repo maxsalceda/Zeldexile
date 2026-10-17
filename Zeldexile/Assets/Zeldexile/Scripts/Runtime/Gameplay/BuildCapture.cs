@@ -42,8 +42,8 @@ namespace Zeldexile.Gameplay
 
         /// <summary>
         /// "-zxshot path.png -zxwalk": six frames of the heavy attack seen from the side (path-pesado-1..6), then the
-        /// hero walks forward by itself: six frames of the walk (path-andar-1..6), one after stopping (path-parado),
-        /// one sprinting (path-correr); then the game quits.
+        /// hero walks sideways to the camera by itself: six frames of the walk (path-andar-1..6), two standing still a
+        /// half-breath apart (path-parado-1..2), six sprinting (path-correr-1..6); then the game quits.
         /// </summary>
         private static IEnumerator WalkSequence(string path)
         {
@@ -69,7 +69,8 @@ namespace Zeldexile.Gameplay
             Zeldexile.Player.PlayerInputReader.ScriptedLook = new Vector2(-1.6f, 0f);
             yield return new WaitForSecondsRealtime(0.5f);
             Zeldexile.Player.PlayerInputReader.ScriptedLook = Vector2.zero;
-            Zeldexile.Player.PlayerInputReader.ScriptedMove = new Vector2(0f, 1f);
+            // Sideways (camera-relative), so the camera sees the gait in profile.
+            Zeldexile.Player.PlayerInputReader.ScriptedMove = new Vector2(1f, 0f);
             yield return new WaitForSecondsRealtime(2.5f);
             for (var i = 1; i <= 6; i++)
             {
@@ -78,14 +79,29 @@ namespace Zeldexile.Gameplay
             }
 
             Zeldexile.Player.PlayerInputReader.ScriptedMove = Vector2.zero;
-            yield return new WaitForSecondsRealtime(2.5f);
-            ScreenCapture.CaptureScreenshot(stem + "-parado.png");
+            yield return new WaitForSecondsRealtime(1f);
+            // Standing: swing the camera round to the hero's front, so stance and breathing show.
+            Zeldexile.Player.PlayerInputReader.ScriptedLook = new Vector2(1.6f, 0f);
             yield return new WaitForSecondsRealtime(0.5f);
-            Zeldexile.Player.PlayerInputReader.ScriptedMove = new Vector2(0f, 1f);
+            Zeldexile.Player.PlayerInputReader.ScriptedLook = Vector2.zero;
+            yield return new WaitForSecondsRealtime(1.5f);
+            ScreenCapture.CaptureScreenshot(stem + "-parado-1.png");
+            yield return new WaitForSecondsRealtime(1.4f); // half a breath later
+            ScreenCapture.CaptureScreenshot(stem + "-parado-2.png");
+            yield return new WaitForSecondsRealtime(0.5f);
+            Zeldexile.Player.PlayerInputReader.ScriptedLook = new Vector2(-1.6f, 0f);
+            yield return new WaitForSecondsRealtime(0.5f);
+            Zeldexile.Player.PlayerInputReader.ScriptedLook = Vector2.zero;
+            Zeldexile.Player.PlayerInputReader.ScriptedMove = new Vector2(1f, 0f);
             Zeldexile.Player.PlayerInputReader.ScriptedSprint = true;
             yield return new WaitForSecondsRealtime(1.5f);
-            ScreenCapture.CaptureScreenshot(stem + "-correr.png");
-            yield return new WaitForSecondsRealtime(1.5f);
+            for (var i = 1; i <= 6; i++)
+            {
+                ScreenCapture.CaptureScreenshot(stem + "-correr-" + i + ".png");
+                yield return new WaitForSecondsRealtime(0.1f);
+            }
+
+            yield return new WaitForSecondsRealtime(1f);
             Application.Quit();
         }
 

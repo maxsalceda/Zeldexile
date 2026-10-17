@@ -18,8 +18,8 @@ modelo, textura, cena, configuração), antes de encerrar a tarefa:
    ```
    `-ilha` abre a ilha de protótipo e `-vitrine` a vitrine do herói (úteis para ver mudanças no personagem).
    Para mudanças de animação, rode também com `-zxwalk`: o jogo salva o ataque pesado visto de lado
-   (`<nome>-pesado-1..6.png`), depois o herói anda sozinho e salva `<nome>-andar-1..6.png`,
-   `<nome>-parado.png` e `<nome>-correr.png`. Os quadros de andar precisam mostrar
+   (`<nome>-pesado-1..6.png`), depois o herói anda de lado para a câmera e salva `<nome>-andar-1..6.png`,
+   `<nome>-parado-1..2.png` (meia respiração entre eles) e `<nome>-correr-1..6.png`. Os quadros de andar precisam mostrar
    pernas em posições diferentes: os testes rodam no editor, e só o executável revela o que o editor esconde
    (por exemplo, `AnimationClip.SampleAnimation` não move ossos fora do editor).
    ```
