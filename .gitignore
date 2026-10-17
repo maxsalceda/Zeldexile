@@ -53,3 +53,7 @@ desktop.ini
 
 # Keep the hand-written domain check project
 !Tools/DomainCheck/DomainCheck.csproj
+
+# Serena language-server logs and caches
+.serena/logs/
+.serena/cache/

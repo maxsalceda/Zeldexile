@@ -37,10 +37,11 @@ namespace Zeldexile.Characters
             // The blade scales by weapon class around the fist, so every sword part shares one pivot.
             if (_parts.TryGetValue(GearPart.SwordHand, out var sword) && sword.Count > 0)
             {
-                var arm = sword[0].transform.parent;
+                // Pivot at the grip (the fist), on the forearm bone that carries the sword.
+                var grip = sword.Find(r => r.name.Contains("Arma Punho")) ?? sword[0];
                 _bladeRoot = new GameObject("Empunhadura").transform;
-                _bladeRoot.SetParent(arm, false);
-                _bladeRoot.localPosition = new Vector3(0f, -0.62f, 0f);
+                _bladeRoot.SetParent(grip.transform.parent, false);
+                _bladeRoot.position = grip.transform.position;
                 foreach (var r in sword) r.transform.SetParent(_bladeRoot, true);
             }
         }

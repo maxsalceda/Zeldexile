@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using Zeldexile.World;
 
@@ -105,21 +106,62 @@ namespace Zeldexile.Characters
     }
 
     /// <summary>
-    /// Joint hierarchy of a character. The animator only rotates these joints, so a Blender model
-    /// with the same joints can replace the generated meshes later.
+    /// The character's skeleton, 26 bones of rigid segments (each mesh of the model belongs to one bone):
+    /// <code>
+    /// Quadril (root, centre of gravity)
+    ///  + Tronco (lower spine: waist, belt) - Bolsa (secondary, swings)
+    ///  |  + Tórax (chest) - Planador
+    ///  |     + Pescoço - Cabeça - Mandíbula
+    ///  |     + Clavícula E/D - Braço E/D (shoulder) - Cotovelo E/D - Pulso E/D - Dedos E/D
+    ///  + Perna E/D (hip) - Joelho E/D - Tornozelo E/D - Ponta do pé E/D
+    /// </code>
+    /// The animator only rotates bones (and moves the root). Bones a model lacks stay null; the animator
+    /// then gives their share of the motion to the parent. A Blender model with these names replaces the
+    /// generated meshes.
     /// </summary>
     public sealed class CharacterRig : MonoBehaviour
     {
         public Transform Hips;
+        /// <summary>Lower spine (waist). <see cref="Chest"/> carries the upper body.</summary>
         public Transform Torso;
+        public Transform Chest;
+        public Transform Neck;
         public Transform Head;
+        public Transform Jaw;
+        public Transform ClavicleL;
+        public Transform ClavicleR;
         public Transform ArmL;
         public Transform ArmR;
+        /// <summary>Lower-limb bones: forearm (shield) and shin. Straight at identity.</summary>
+        public Transform ElbowL;
+        public Transform ElbowR;
+        /// <summary>Hand and anything held in it.</summary>
+        public Transform WristL;
+        public Transform WristR;
+        public Transform FingersL;
+        public Transform FingersR;
         public Transform LegL;
         public Transform LegR;
+        public Transform KneeL;
+        public Transform KneeR;
+        public Transform AnkleL;
+        public Transform AnkleR;
+        public Transform ToesL;
+        public Transform ToesR;
+        /// <summary>Secondary bone: the satchel on the right hip.</summary>
+        public Transform Bag;
         public Transform Glider;
 
         public float HipsHeight { get; private set; }
+
+        /// <summary>Height of the soles at rest, in the rig's local space: where the ground is.</summary>
+        public float GroundY { get; private set; }
+
+        /// <summary>
+        /// Points that can touch the ground, each in its bone's local space: heel and sole (ankle), ball and
+        /// toe tip (toes), front of the knee. The animator lowers the hips until the lowest one meets the ground.
+        /// </summary>
+        public readonly List<(Transform bone, Vector3 local)> Contacts = new List<(Transform, Vector3)>();
 
         public static CharacterRig Build(Transform parent, RigStyle style)
         {
@@ -149,19 +191,95 @@ namespace Zeldexile.Characters
             }
 
             var rig = root.AddComponent<CharacterRig>();
-            rig.Hips = Rejoint(model.transform, "Quadril", root.transform);
-            rig.Torso = Rejoint(model.transform, "Tronco", rig.Hips);
-            rig.Head = Rejoint(model.transform, "Cabeça", rig.Torso);
-            rig.ArmL = Rejoint(model.transform, "Braço E", rig.Torso);
-            rig.ArmR = Rejoint(model.transform, "Braço D", rig.Torso);
-            rig.LegL = Rejoint(model.transform, "Perna E", rig.Hips);
-            rig.LegR = Rejoint(model.transform, "Perna D", rig.Hips);
-            rig.Glider = Rejoint(model.transform, "Planador", rig.Torso);
+            var m = model.transform;
+            rig.Hips = Rejoint(m, "Quadril", root.transform);
+            rig.Torso = Rejoint(m, "Tronco", rig.Hips);
+            rig.Bag = Optional(m, "Bolsa", rig.Torso);
+            rig.Chest = Optional(m, "Tórax", rig.Torso);
+            var upper = rig.Chest != null ? rig.Chest : rig.Torso;
+            rig.Neck = Optional(m, "Pescoço", upper);
+            rig.Head = Rejoint(m, "Cabeça", rig.Neck != null ? rig.Neck : upper);
+            rig.Jaw = Optional(m, "Mandíbula", rig.Head);
+            rig.ClavicleL = Optional(m, "Clavícula E", upper);
+            rig.ClavicleR = Optional(m, "Clavícula D", upper);
+            rig.ArmL = Rejoint(m, "Braço E", rig.ClavicleL != null ? rig.ClavicleL : upper);
+            rig.ArmR = Rejoint(m, "Braço D", rig.ClavicleR != null ? rig.ClavicleR : upper);
+            rig.ElbowL = Optional(m, "Cotovelo E", rig.ArmL);
+            rig.ElbowR = Optional(m, "Cotovelo D", rig.ArmR);
+            rig.WristL = Optional(m, "Pulso E", rig.ElbowL);
+            rig.WristR = Optional(m, "Pulso D", rig.ElbowR);
+            rig.FingersL = Optional(m, "Dedos E", rig.WristL);
+            rig.FingersR = Optional(m, "Dedos D", rig.WristR);
+            rig.LegL = Rejoint(m, "Perna E", rig.Hips);
+            rig.LegR = Rejoint(m, "Perna D", rig.Hips);
+            rig.KneeL = Optional(m, "Joelho E", rig.LegL);
+            rig.KneeR = Optional(m, "Joelho D", rig.LegR);
+            rig.AnkleL = Optional(m, "Tornozelo E", rig.KneeL);
+            rig.AnkleR = Optional(m, "Tornozelo D", rig.KneeR);
+            rig.ToesL = Optional(m, "Ponta do pé E", rig.AnkleL);
+            rig.ToesR = Optional(m, "Ponta do pé D", rig.AnkleR);
+            rig.Glider = Rejoint(m, "Planador", upper);
             rig.HipsHeight = rig.Hips.localPosition.y;
             rig.Glider.gameObject.SetActive(false);
             Object.Destroy(model);
             HideHandGear(rig);
+            rig.FindContacts();
             return rig;
+        }
+
+        /// <summary>A bone the model may not have (older exports): null when absent or when its parent is.</summary>
+        private static Transform Optional(Transform model, string name, Transform newParent)
+        {
+            if (newParent == null || model.Find(name) == null) return null;
+            return Rejoint(model, name, newParent);
+        }
+
+        /// <summary>
+        /// At rest (all bones at identity) the lowest drawn point is the ground. Contact points then sit on the
+        /// sole under the heel, the arch, the ball and the toe tip, and on the front of the knee.
+        /// </summary>
+        private void FindContacts()
+        {
+            Contacts.Clear();
+            var lowest = float.MaxValue;
+            foreach (var r in GetComponentsInChildren<Renderer>())
+            {
+                if (!r.enabled) continue;
+                lowest = Mathf.Min(lowest, transform.InverseTransformPoint(r.bounds.min).y);
+            }
+
+            GroundY = lowest == float.MaxValue ? 0f : lowest;
+            foreach (var (knee, ankle, toes) in new[] { (KneeL, AnkleL, ToesL), (KneeR, AnkleR, ToesR) })
+            {
+                var foot = ankle != null ? ankle : knee;
+                if (foot == null) continue;
+                var heel = transform.InverseTransformPoint(foot.position);
+                AddContact(foot, new Vector3(heel.x, GroundY, heel.z - 0.08f));
+                AddContact(foot, new Vector3(heel.x, GroundY, heel.z + 0.08f));
+                if (toes != null)
+                {
+                    var ball = transform.InverseTransformPoint(toes.position);
+                    AddContact(toes, new Vector3(ball.x, GroundY, ball.z + 0.09f));
+                }
+
+                if (knee != null && knee != foot)
+                {
+                    var k = transform.InverseTransformPoint(knee.position);
+                    AddContact(knee, new Vector3(k.x, k.y - 0.03f, k.z + 0.1f));
+                }
+            }
+        }
+
+        private void AddContact(Transform bone, Vector3 rigLocal) =>
+            Contacts.Add((bone, bone.InverseTransformPoint(transform.TransformPoint(rigLocal))));
+
+        /// <summary>How far the lowest contact point is above the ground, in the rig's local space.</summary>
+        public float LowestContactHeight()
+        {
+            var lowest = float.MaxValue;
+            foreach (var (bone, local) in Contacts)
+                lowest = Mathf.Min(lowest, transform.InverseTransformPoint(bone.TransformPoint(local)).y);
+            return lowest == float.MaxValue ? 0f : lowest - GroundY;
         }
 
         /// <summary>
@@ -263,6 +381,10 @@ namespace Zeldexile.Characters
             rig.ArmR = Arm("Braço D", rig.Torso, 1f, tunic, skin, down);
             rig.LegL = Leg("Perna E", rig.Hips, -1f, pants, boots, down);
             rig.LegR = Leg("Perna D", rig.Hips, 1f, pants, boots, down);
+            rig.ElbowL = Joint("Cotovelo E", rig.ArmL, new Vector3(0f, -0.28f, 0f));
+            rig.ElbowR = Joint("Cotovelo D", rig.ArmR, new Vector3(0f, -0.28f, 0f));
+            rig.KneeL = Joint("Joelho E", rig.LegL, new Vector3(0f, -0.44f, 0f));
+            rig.KneeR = Joint("Joelho D", rig.LegR, new Vector3(0f, -0.44f, 0f));
 
             rig.Glider = Joint("Planador", rig.Torso, new Vector3(0f, 1.05f, 0.05f));
             LowPoly.Part("Asa", rig.Glider, LowPoly.Glider(), Palette.Solid(style.Accent), Vector3.zero, new Vector3(2.1f, 0.6f, 1.1f));

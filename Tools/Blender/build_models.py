@@ -52,6 +52,7 @@ SLOT_COLORS = {
 
 REPORT = []
 WORLD = {}  # object name -> absolute position in Unity space
+AUTHORED_IN = {}  # bone name -> name of the joint whose space its parts are authored in
 
 
 # ---------------------------------------------------------------- scene helpers
@@ -59,6 +60,7 @@ WORLD = {}  # object name -> absolute position in Unity space
 def reset_scene():
     bpy.ops.wm.read_factory_settings(use_empty=True)
     WORLD.clear()
+    AUTHORED_IN.clear()
 
 
 def material(slot):
@@ -111,7 +113,9 @@ def finish(bm, name, slot, parent=None, bevel=0.0):
     owner = parent.name if parent is not None else ""
     obj = bpy.data.objects.new(f"{owner}~{name}@{slot}", mesh)
     bpy.context.scene.collection.objects.link(obj)
-    base = WORLD[owner] if parent is not None else Vector((0, 0, 0))
+    # Elbow and knee bones reuse the coordinates of the limb above them (AUTHORED_IN), so moving a part
+    # to the lower bone never changes where it sits.
+    base = WORLD[AUTHORED_IN.get(owner, owner)] if parent is not None else Vector((0, 0, 0))
     obj.location = TO_BLENDER @ (base + center)
     return obj
 
@@ -263,54 +267,66 @@ def humanoid(name, kind):
     part(hips, "Pelve", "pants", lambda bm: prism(bm, 8, 0.34, 0.25, 0.2, top=0.88, y0=-0.12), 0.02)
 
     torso = empty("Tronco", hips, (0, 0.06, 0))
+    # Spine in two segments: Tronco (lower back, belt, satchel) and Tórax (chest, collar, shoulders, back gear).
+    chest = empty("Tórax", torso, (0, 0.22, 0))
+    AUTHORED_IN[chest.name] = torso.name
+    # Satchel: a secondary bone hanging from the belt, so it swings behind the motion.
+    bag = empty("Bolsa", torso, (0.22, -0.02, 0.02))
+    AUTHORED_IN[bag.name] = torso.name
     if hero:
         # Waist and chest: an athletic V taper with a defined waist.
         part(torso, "Cintura", "shirt", lambda bm: prism(bm, 8, 0.30, 0.22, 0.16, top=1.08, y0=-0.02), 0.015)
-        part(torso, "Peito", "tunic", lambda bm: prism(bm, 8, 0.36, 0.25, 0.36, top=1.2, y0=0.12), 0.02)
+        part(chest, "Peito", "tunic", lambda bm: prism(bm, 8, 0.36, 0.25, 0.36, top=1.2, y0=0.12), 0.02)
         # Open front: the charcoal shirt shows in a V down the chest, framed by ochre lapels.
-        part(torso, "Camisa", "shirt", lambda bm: prism(bm, 4, 0.03, 0.03, 0.34, top=4.5, y0=0.14, at=(0, 0, 0.118)), 0.0)
+        part(chest, "Camisa", "shirt", lambda bm: prism(bm, 4, 0.03, 0.03, 0.34, top=4.5, y0=0.14, at=(0, 0, 0.118)), 0.0)
         for side, label in ((-1, "E"), (1, "D")):
-            part(torso, f"Lapela {label}", "accent",
+            part(chest, f"Lapela {label}", "accent",
                  lambda bm, s=side: box(bm, (0.024, 0.36, 0.022), at=(0.05 * s, 0.3, 0.128), rotate=(0, 0, -11 * s)), 0.0)
-            part(torso, f"Ombreira {label}", "tunic",
+            part(chest, f"Ombreira {label}", "tunic",
                  lambda bm, s=side: ico(bm, (0.15, 0.11, 0.17), at=(0.2 * s, 0.43, 0), subdivisions=1), 0.0)
         # Ochre hem at the waist, standing collar with a trimmed edge.
         part(torso, "Barra", "accent", lambda bm: prism(bm, 8, 0.375, 0.262, 0.03, top=1.0, y0=0.105), 0.0)
-        part(torso, "Gola", "tunic", lambda bm: prism(bm, 8, 0.25, 0.21, 0.1, top=1.12, y0=0.47), 0.012)
-        part(torso, "Gola Borda", "accent", lambda bm: prism(bm, 8, 0.285, 0.24, 0.022, y0=0.565), 0.0)
-        part(torso, "Pescoço", "skin", lambda bm: prism(bm, 6, 0.1, 0.1, 0.1, y0=0.5), 0.0)
-        part(torso, "Detalhe", "accent", lambda bm: box(bm, (0.05, 0.05, 0.02), at=(-0.12, 0.35, 0.13)), 0.004)
+        part(chest, "Gola", "tunic", lambda bm: prism(bm, 8, 0.25, 0.21, 0.1, top=1.12, y0=0.47), 0.012)
+        part(chest, "Gola Borda", "accent", lambda bm: prism(bm, 8, 0.285, 0.24, 0.022, y0=0.565), 0.0)
+        part(chest, "Detalhe", "accent", lambda bm: box(bm, (0.05, 0.05, 0.02), at=(-0.12, 0.35, 0.13)), 0.004)
         # Brown belt with a brass buckle.
         part(torso, "Cinto", "leather", lambda bm: prism(bm, 8, 0.335, 0.245, 0.06, y0=-0.04), 0.01)
         part(torso, "Fivela", "brass", lambda bm: box(bm, (0.07, 0.055, 0.02), at=(0, -0.01, 0.125)), 0.006)
         # Satchel strap from the left shoulder to the right hip, front and back, and the satchel itself.
-        part(torso, "Alça", "leather", lambda bm: box(bm, (0.045, 0.62, 0.02), at=(0.0, 0.2, 0.13), rotate=(0, 0, 40)), 0.004)
-        part(torso, "Alça Costas", "leather", lambda bm: box(bm, (0.045, 0.62, 0.02), at=(0.0, 0.2, -0.13), rotate=(0, 0, 40)), 0.004)
-        part(torso, "Bolsa", "bag", lambda bm: box(bm, (0.08, 0.15, 0.19), at=(0.22, -0.1, 0.02)), 0.02)
-        part(torso, "Bolsa Tampa", "leather", lambda bm: box(bm, (0.09, 0.07, 0.2), at=(0.225, -0.04, 0.02)), 0.01)
-        part(torso, "Bolsa Fecho", "brass", lambda bm: box(bm, (0.02, 0.03, 0.03), at=(0.27, -0.06, 0.02)), 0.0)
+        part(chest, "Alça", "leather", lambda bm: box(bm, (0.045, 0.62, 0.02), at=(0.0, 0.2, 0.13), rotate=(0, 0, 40)), 0.004)
+        part(chest, "Alça Costas", "leather", lambda bm: box(bm, (0.045, 0.62, 0.02), at=(0.0, 0.2, -0.13), rotate=(0, 0, 40)), 0.004)
+        part(bag, "Bolsa", "bag", lambda bm: box(bm, (0.08, 0.15, 0.19), at=(0.22, -0.1, 0.02)), 0.02)
+        part(bag, "Bolsa Tampa", "leather", lambda bm: box(bm, (0.09, 0.07, 0.2), at=(0.225, -0.04, 0.02)), 0.01)
+        part(bag, "Bolsa Fecho", "brass", lambda bm: box(bm, (0.02, 0.03, 0.03), at=(0.27, -0.06, 0.02)), 0.0)
         # Stowed gear (the reference never shows it stowed): scabbard and shield on the back, bow beside them.
-        part(torso, "Arma Costas Bainha", "leather", lambda bm: box(bm, (0.065, 0.72, 0.04), at=(-0.06, 0.2, -0.16), rotate=(0, 0, -20)), 0.008)
-        part(torso, "Arma Costas Guarda", "brass", lambda bm: box(bm, (0.15, 0.03, 0.045), at=(-0.185, 0.57, -0.16), rotate=(0, 0, -20)), 0.004)
-        part(torso, "Arma Costas Punho", "grip", lambda bm: box(bm, (0.035, 0.15, 0.035), at=(-0.215, 0.66, -0.16), rotate=(0, 0, -20)), 0.004)
-        part(torso, "Arma Costas Pomo", "brass", lambda bm: ico(bm, (0.045, 0.045, 0.045), at=(-0.245, 0.745, -0.16)), 0.0)
-        round_shield("Escudo Costas", torso, (0.03, 0.22, -0.215), (90, 0, 0), -1)
-        part(torso, "Arco Costas", "wood", lambda bm: box(bm, (0.032, 1.0, 0.045), at=(0.14, 0.2, -0.27), rotate=(0, 0, 24)), 0.006)
-        part(torso, "Arco Costas Corda", "cream", lambda bm: box(bm, (0.008, 0.94, 0.008), at=(0.16, 0.2, -0.295), rotate=(0, 0, 24)), 0.0)
+        part(chest, "Arma Costas Bainha", "leather", lambda bm: box(bm, (0.065, 0.72, 0.04), at=(-0.06, 0.2, -0.16), rotate=(0, 0, -20)), 0.008)
+        part(chest, "Arma Costas Guarda", "brass", lambda bm: box(bm, (0.15, 0.03, 0.045), at=(-0.185, 0.57, -0.16), rotate=(0, 0, -20)), 0.004)
+        part(chest, "Arma Costas Punho", "grip", lambda bm: box(bm, (0.035, 0.15, 0.035), at=(-0.215, 0.66, -0.16), rotate=(0, 0, -20)), 0.004)
+        part(chest, "Arma Costas Pomo", "brass", lambda bm: ico(bm, (0.045, 0.045, 0.045), at=(-0.245, 0.745, -0.16)), 0.0)
+        round_shield("Escudo Costas", chest, (0.03, 0.22, -0.215), (90, 0, 0), -1)
+        part(chest, "Arco Costas", "wood", lambda bm: box(bm, (0.032, 1.0, 0.045), at=(0.14, 0.2, -0.27), rotate=(0, 0, 24)), 0.006)
+        part(chest, "Arco Costas Corda", "cream", lambda bm: box(bm, (0.008, 0.94, 0.008), at=(0.16, 0.2, -0.295), rotate=(0, 0, 24)), 0.0)
     else:
-        part(torso, "Peito", "tunic", lambda bm: prism(bm, 6, 0.38, 0.27, 0.5, top=1.18), 0.025)
+        part(chest, "Peito", "tunic", lambda bm: prism(bm, 6, 0.38, 0.27, 0.5, top=1.18), 0.025)
         part(torso, "Cinto", "accent", lambda bm: prism(bm, 6, 0.41, 0.30, 0.07, y0=-0.02), 0.012)
         part(torso, "Fivela", "metal", lambda bm: box(bm, (0.10, 0.075, 0.03), at=(0, 0.015, 0.155)), 0.01)
-        part(torso, "Gola", "accent", lambda bm: prism(bm, 5, 0.31, 0.25, 0.09, top=0.8, y0=0.44), 0.015)
-        part(torso, "Casco", "hair", lambda bm: ico(bm, (0.64, 0.56, 0.46), at=(0, 0.3, -0.15), jitter=0.12, seed=7), 0.03)
+        part(chest, "Gola", "accent", lambda bm: prism(bm, 5, 0.31, 0.25, 0.09, top=0.8, y0=0.44), 0.015)
+        part(chest, "Casco", "hair", lambda bm: ico(bm, (0.64, 0.56, 0.46), at=(0, 0.3, -0.15), jitter=0.12, seed=7), 0.03)
         for i, (x, y) in enumerate(((0, 0.55), (-0.18, 0.4), (0.18, 0.4), (0, 0.25))):
-            part(torso, f"Espinho {i}", "accent", lambda bm, x=x, y=y: prism(bm, 4, 0.1, 0.1, 0.16, top=0, y0=0, at=(x, y, -0.36), rotate=(-70, 0, 0)), 0.006)
+            part(chest, f"Espinho {i}", "accent", lambda bm, x=x, y=y: prism(bm, 4, 0.1, 0.1, 0.16, top=0, y0=0, at=(x, y, -0.36), rotate=(-70, 0, 0)), 0.006)
 
-    head = empty("Cabeça", torso, (0, 0.55 if hero else 0.52, 0))
+    neck = empty("Pescoço", chest, (0, 0.28 if hero else 0.25, 0))
+    AUTHORED_IN[neck.name] = torso.name
+    if hero:
+        part(neck, "Pele Pescoço", "skin", lambda bm: prism(bm, 6, 0.1, 0.1, 0.1, y0=0.5), 0.0)
+    head = empty("Cabeça", neck, (0, 0.05, 0))
+    # Jaw: chin and mouth open together (shouts on heavy blows, flinch).
+    jaw = empty("Mandíbula", head, (0, 0.13, -0.02))
+    AUTHORED_IN[jaw.name] = head.name
     if hero:
         # Anime proportions: a slightly narrow jaw under a rounder skull.
         part(head, "Rosto", "skin", lambda bm: ico(bm, (0.30, 0.34, 0.30), at=(0, 0.17, 0.005), subdivisions=2), 0.0)
-        part(head, "Queixo", "skin", lambda bm: prism(bm, 6, 0.17, 0.14, 0.09, top=0.45, y0=0.02, down=True, at=(0, 0.06, 0.03)), 0.0)
+        part(jaw, "Queixo", "skin", lambda bm: prism(bm, 6, 0.17, 0.14, 0.09, top=0.45, y0=0.02, down=True, at=(0, 0.06, 0.03)), 0.0)
         for side, label in ((-1, "E"), (1, "D")):
             # Expressive eyes: amber iris, dark crisp upper lid, a small highlight; brows that follow.
             part(head, f"Olho {label}", "iris", lambda bm, s=side: box(bm, (0.052, 0.062, 0.02), at=(0.066 * s, 0.175, 0.142), rotate=(0, 12 * s, 0)), 0.0)
@@ -320,7 +336,7 @@ def humanoid(name, kind):
             # Human, rounded ears.
             part(head, f"Orelha {label}", "skin", lambda bm, s=side: ico(bm, (0.035, 0.07, 0.05), at=(0.152 * s, 0.17, -0.005)), 0.0)
         part(head, "Nariz", "nose", lambda bm: prism(bm, 3, 0.022, 0.02, 0.03, top=0.3, at=(0, 0.13, 0.148), rotate=(90, 0, 0)), 0.0)
-        part(head, "Boca", "dark", lambda bm: box(bm, (0.045, 0.008, 0.01), at=(0, 0.085, 0.142)), 0.0)
+        part(jaw, "Boca", "dark", lambda bm: box(bm, (0.045, 0.008, 0.01), at=(0, 0.085, 0.142)), 0.0)
 
         # Hair: a cap for volume on top, then readable clumps of irregular pointed locks.
         part(head, "Cabelo", "hair", lambda bm: ico(bm, (0.36, 0.30, 0.36), at=(0, 0.27, -0.03), subdivisions=1, jitter=0.06, seed=11), 0.0)
@@ -351,22 +367,34 @@ def humanoid(name, kind):
             part(head, f"Olho {label}", "dark", lambda bm, s=side: box(bm, (0.05, 0.075, 0.03), at=(0.075 * s, 0.2, 0.158)), 0.01)
             part(head, f"Orelha {label}", "skin", lambda bm, s=side: prism(bm, 4, 0.06, 0.04, 0.1, top=0.3, at=(0.17 * s, 0.18, 0), rotate=(0, 0, -70 * s)), 0.008)
             part(head, f"Chifre {label}", "accent", lambda bm, s=side: prism(bm, 5, 0.09, 0.09, 0.24, top=0, at=(0.12 * s, 0.32, 0.02), rotate=(-20, 0, -25 * s)), 0.008)
-            part(head, f"Presa {label}", "accent", lambda bm, s=side: prism(bm, 4, 0.04, 0.04, 0.07, top=0, at=(0.06 * s, 0.1, 0.15), rotate=(0, 0, 180)), 0.004)
+            part(jaw, f"Presa {label}", "accent", lambda bm, s=side: prism(bm, 4, 0.04, 0.04, 0.07, top=0, at=(0.06 * s, 0.1, 0.15), rotate=(0, 0, 180)), 0.004)
         part(head, "Nariz", "skin", lambda bm: prism(bm, 4, 0.05, 0.05, 0.06, top=0.4, at=(0, 0.14, 0.165), rotate=(90, 0, 0)), 0.006)
 
     for side, label in ((-1, "E"), (1, "D")):
-        arm = empty(f"Braço {label}", torso, (0.23 * side, 0.43, 0))
+        # Clavicle: lifts and pulls the shoulder forward when the arm reaches up or ahead.
+        clavicle = empty(f"Clavícula {label}", chest, (0.06 * side, 0.2, 0))
+        AUTHORED_IN[clavicle.name] = torso.name
+        arm = empty(f"Braço {label}", clavicle, (0.17 * side, 0.01, 0))
+        # Elbow bone: forearm, hand and everything held move with it.
+        elbow = empty(f"Cotovelo {label}", arm, (0, -0.29 if hero else -0.27, 0))
+        AUTHORED_IN[elbow.name] = arm.name
+        # Wrist: hand and everything held; finger bone: the fingers close around a grip.
+        wrist = empty(f"Pulso {label}", elbow, (0, -0.3 if hero else -0.29, 0))
+        AUTHORED_IN[wrist.name] = arm.name
+        fingers = empty(f"Dedos {label}", wrist, (0, -0.06, 0.0))
+        AUTHORED_IN[fingers.name] = arm.name
         if hero:
             # Short jacket sleeve with ochre cuff, charcoal shirt sleeve to the elbow, cloth wraps, fingerless glove.
             part(arm, "Manga", "tunic", lambda bm: prism(bm, 8, 0.15, 0.15, 0.17, top=0.9, down=True), 0.012)
             part(arm, "Punho Manga", "accent", lambda bm: prism(bm, 8, 0.15, 0.15, 0.025, y0=-0.155, down=True), 0.0)
             part(arm, "Manga Camisa", "shirt", lambda bm: prism(bm, 8, 0.12, 0.12, 0.14, top=0.92, y0=-0.16, down=True), 0.0)
-            part(arm, "Antebraço", "cream", lambda bm: prism(bm, 8, 0.1, 0.1, 0.24, top=0.84, y0=-0.29, down=True), 0.0)
+            part(elbow, "Junta Cotovelo", "shirt", lambda bm: ico(bm, (0.105, 0.1, 0.105), at=(0, -0.29, 0), subdivisions=1), 0.0)
+            part(elbow, "Antebraço", "cream", lambda bm: prism(bm, 8, 0.1, 0.1, 0.24, top=0.84, y0=-0.29, down=True), 0.0)
             for j, y in enumerate((-0.33, -0.39, -0.45)):
-                part(arm, f"Faixa {j}", "cream", lambda bm, y=y: prism(bm, 8, 0.108, 0.108, 0.012, y0=y, down=True, rotate=(0, 0, 6)), 0.0)
-            part(arm, "Luva", "glove", lambda bm: prism(bm, 8, 0.095, 0.095, 0.08, y0=-0.52, down=True), 0.004)
-            part(arm, "Mão", "glove", lambda bm: ico(bm, (0.1, 0.11, 0.09), at=(0, -0.62, 0.005)), 0.0)
-            part(arm, "Dedos", "skin", lambda bm: box(bm, (0.075, 0.035, 0.07), at=(0, -0.665, 0.02)), 0.006)
+                part(elbow, f"Faixa {j}", "cream", lambda bm, y=y: prism(bm, 8, 0.108, 0.108, 0.012, y0=y, down=True, rotate=(0, 0, 6)), 0.0)
+            part(elbow, "Luva", "glove", lambda bm: prism(bm, 8, 0.095, 0.095, 0.08, y0=-0.52, down=True), 0.004)
+            part(wrist, "Mão", "glove", lambda bm: ico(bm, (0.1, 0.11, 0.09), at=(0, -0.62, 0.005)), 0.0)
+            part(fingers, "Dedos", "skin", lambda bm: box(bm, (0.075, 0.035, 0.07), at=(0, -0.665, 0.02)), 0.006)
             if side > 0:
                 # One-handed sword in the right fist: brass guard, dark grip, small pommel, straight steel blade.
                 # The blade leaves the fist 30 degrees ahead of the forearm axis: hanging, it points down and
@@ -377,46 +405,57 @@ def humanoid(name, kind):
                     v = hand + d * t
                     return (v.x, v.y, v.z)
                 tilt = (-30, 0, 0)
-                part(arm, "Arma Pomo", "brass", lambda bm: ico(bm, (0.045, 0.045, 0.045), at=along(-0.1)), 0.0)
-                part(arm, "Arma Punho", "grip", lambda bm: box(bm, (0.035, 0.16, 0.035), at=along(0.0), rotate=tilt), 0.0)
-                part(arm, "Arma Guarda", "brass", lambda bm: box(bm, (0.17, 0.035, 0.035), at=along(0.095), rotate=tilt), 0.004)
-                part(arm, "Arma", "steel", lambda bm: box(bm, (0.05, 0.72, 0.014), at=along(0.475), rotate=tilt), 0.003)
-                part(arm, "Arma Ponta", "steel", lambda bm: prism(bm, 4, 0.05, 0.014, 0.1, top=0, y0=0.0, down=True, at=along(0.835), rotate=tilt), 0.0)
+                part(wrist, "Arma Pomo", "brass", lambda bm: ico(bm, (0.045, 0.045, 0.045), at=along(-0.1)), 0.0)
+                part(wrist, "Arma Punho", "grip", lambda bm: box(bm, (0.035, 0.16, 0.035), at=along(0.0), rotate=tilt), 0.0)
+                part(wrist, "Arma Guarda", "brass", lambda bm: box(bm, (0.17, 0.035, 0.035), at=along(0.095), rotate=tilt), 0.004)
+                part(wrist, "Arma", "steel", lambda bm: box(bm, (0.05, 0.72, 0.014), at=along(0.475), rotate=tilt), 0.003)
+                part(wrist, "Arma Ponta", "steel", lambda bm: prism(bm, 4, 0.05, 0.014, 0.1, top=0, y0=0.0, down=True, at=along(0.835), rotate=tilt), 0.0)
             else:
                 # Round shield worn on the left forearm; its outer face points away from the body (-X).
-                round_shield("Escudo", arm, (-0.07, -0.42, 0.0), (0, 0, 90), 1)
-                part(arm, "Arco", "wood", lambda bm: box(bm, (0.035, 0.05, 1.1), at=(0, -0.62, 0)), 0.006)
-                part(arm, "Arco Corda", "cream", lambda bm: box(bm, (0.008, 0.008, 1.02), at=(0.04, -0.62, 0)), 0.0)
+                round_shield("Escudo", elbow, (-0.07, -0.42, 0.0), (0, 0, 90), 1)
+                part(wrist, "Arco", "wood", lambda bm: box(bm, (0.035, 0.05, 1.1), at=(0, -0.62, 0)), 0.006)
+                part(wrist, "Arco Corda", "cream", lambda bm: box(bm, (0.008, 0.008, 1.02), at=(0.04, -0.62, 0)), 0.0)
         else:
             part(arm, "Manga", "tunic", lambda bm: prism(bm, 6, 0.14, 0.14, 0.3, top=0.85, down=True), 0.015)
-            part(arm, "Antebraço", "skin", lambda bm: prism(bm, 6, 0.105, 0.105, 0.3, top=0.85, y0=-0.27, down=True), 0.012)
-            part(arm, "Bracelete", "boots", lambda bm: prism(bm, 6, 0.125, 0.125, 0.045, y0=-0.33, down=True), 0.008)
-            part(arm, "Mão", "skin", lambda bm: ico(bm, (0.13, 0.13, 0.13), at=(0, -0.6, 0)), 0.008)
+            part(elbow, "Antebraço", "skin", lambda bm: prism(bm, 6, 0.105, 0.105, 0.3, top=0.85, y0=-0.27, down=True), 0.012)
+            part(elbow, "Bracelete", "boots", lambda bm: prism(bm, 6, 0.125, 0.125, 0.045, y0=-0.33, down=True), 0.008)
+            part(wrist, "Mão", "skin", lambda bm: ico(bm, (0.13, 0.13, 0.13), at=(0, -0.6, 0)), 0.008)
             for i in (-1, 0, 1):
-                part(arm, f"Garra {i}", "accent", lambda bm, i=i: prism(bm, 3, 0.03, 0.03, 0.07, top=0, y0=-0.64, down=True, at=(0.03 * i, 0, 0.03)), 0.0)
+                part(fingers, f"Garra {i}", "accent", lambda bm, i=i: prism(bm, 3, 0.03, 0.03, 0.07, top=0, y0=-0.64, down=True, at=(0.03 * i, 0, 0.03)), 0.0)
 
         leg = empty(f"Perna {label}", hips, (0.1 * side, -0.08, 0))
+        # Knee bone: shin and boot move with it.
+        knee = empty(f"Joelho {label}", leg, (0, -0.44 if hero else -0.43, 0))
+        AUTHORED_IN[knee.name] = leg.name
+        # Ankle: the foot stays flat on the ground; ball of the foot: the toes bend when the heel lifts.
+        ankle = empty(f"Tornozelo {label}", knee, (0, -0.38, 0))
+        AUTHORED_IN[ankle.name] = leg.name
+        toes = empty(f"Ponta do pé {label}", ankle, (0, -0.06, 0.11))
+        AUTHORED_IN[toes.name] = leg.name
         if hero:
             part(leg, "Coxa", "pants", lambda bm: prism(bm, 8, 0.17, 0.17, 0.44, top=0.8, down=True), 0.012)
-            part(leg, "Canela", "pants", lambda bm: prism(bm, 8, 0.135, 0.135, 0.3, top=0.88, y0=-0.42, down=True), 0.01)
+            part(knee, "Canela", "pants", lambda bm: prism(bm, 8, 0.135, 0.135, 0.3, top=0.88, y0=-0.42, down=True), 0.01)
             part(leg, "Costura", "seam", lambda bm, s=side: box(bm, (0.012, 0.36, 0.012), at=(0.075 * s, -0.24, 0.0)), 0.0)
             part(leg, "Costura Joelho", "seam", lambda bm: box(bm, (0.13, 0.012, 0.012), at=(0, -0.3, 0.07), rotate=(0, 0, 12)), 0.0)
-            part(leg, "Joelheira", "kneepad", lambda bm: ico(bm, (0.12, 0.13, 0.07), at=(0, -0.44, 0.065), subdivisions=1), 0.0)
+            part(knee, "Junta Joelho", "pants", lambda bm: ico(bm, (0.14, 0.12, 0.14), at=(0, -0.44, 0), subdivisions=1), 0.0)
+            part(knee, "Joelheira", "kneepad", lambda bm: ico(bm, (0.12, 0.13, 0.07), at=(0, -0.44, 0.065), subdivisions=1), 0.0)
             # Brown boot: shaft, folded cuff, two buckle straps, foot and a darker sole.
-            part(leg, "Cano da bota", "boots", lambda bm: prism(bm, 8, 0.15, 0.15, 0.2, y0=-0.64, down=True), 0.01)
-            part(leg, "Dobra da bota", "boots", lambda bm: prism(bm, 8, 0.175, 0.175, 0.06, top=1.06, y0=-0.62, down=True), 0.008)
+            part(knee, "Cano da bota", "boots", lambda bm: prism(bm, 8, 0.15, 0.15, 0.2, y0=-0.64, down=True), 0.01)
+            part(knee, "Dobra da bota", "boots", lambda bm: prism(bm, 8, 0.175, 0.175, 0.06, top=1.06, y0=-0.62, down=True), 0.008)
             for j, y in enumerate((-0.72, -0.79)):
-                part(leg, f"Tira {j}", "leather", lambda bm, y=y: prism(bm, 8, 0.158, 0.158, 0.022, y0=y, down=True), 0.0)
-                part(leg, f"Fivela {j}", "brass", lambda bm, y=y, s=side: box(bm, (0.02, 0.025, 0.03), at=(0.07 * s, y - 0.011, 0.03)), 0.0)
-            part(leg, "Bota", "boots", lambda bm: prism(bm, 8, 0.17, 0.28, 0.1, top=0.85, y0=-0.85, at=(0, 0, 0.05)), 0.018)
-            part(leg, "Sola", "sole", lambda bm: prism(bm, 8, 0.18, 0.29, 0.035, y0=-0.885, at=(0, 0, 0.05)), 0.006)
+                part(knee, f"Tira {j}", "leather", lambda bm, y=y: prism(bm, 8, 0.158, 0.158, 0.022, y0=y, down=True), 0.0)
+                part(knee, f"Fivela {j}", "brass", lambda bm, y=y, s=side: box(bm, (0.02, 0.025, 0.03), at=(0.07 * s, y - 0.011, 0.03)), 0.0)
+            part(ankle, "Bota", "boots", lambda bm: prism(bm, 8, 0.17, 0.22, 0.1, top=0.85, y0=-0.85, at=(0, 0, 0.02)), 0.018)
+            part(ankle, "Sola", "sole", lambda bm: prism(bm, 8, 0.18, 0.23, 0.035, y0=-0.885, at=(0, 0, 0.02)), 0.006)
+            part(toes, "Biqueira", "boots", lambda bm: prism(bm, 8, 0.165, 0.11, 0.085, top=0.8, y0=-0.85, at=(0, 0, 0.15)), 0.015)
+            part(toes, "Sola Bico", "sole", lambda bm: prism(bm, 8, 0.172, 0.115, 0.035, y0=-0.885, at=(0, 0, 0.15)), 0.006)
         else:
             part(leg, "Coxa", "pants", lambda bm: prism(bm, 6, 0.17, 0.17, 0.46, top=0.85, down=True), 0.015)
-            part(leg, "Canela", "pants", lambda bm: prism(bm, 6, 0.145, 0.145, 0.32, top=0.85, y0=-0.42, down=True), 0.012)
-            part(leg, "Cano da bota", "boots", lambda bm: prism(bm, 6, 0.165, 0.165, 0.16, y0=-0.69, down=True), 0.012)
-            part(leg, "Bota", "boots", lambda bm: prism(bm, 6, 0.19, 0.28, 0.14, top=0.85, y0=-0.84, at=(0, 0, 0.045)), 0.02)
+            part(knee, "Canela", "pants", lambda bm: prism(bm, 6, 0.145, 0.145, 0.32, top=0.85, y0=-0.42, down=True), 0.012)
+            part(knee, "Cano da bota", "boots", lambda bm: prism(bm, 6, 0.165, 0.165, 0.16, y0=-0.69, down=True), 0.012)
+            part(ankle, "Bota", "boots", lambda bm: prism(bm, 6, 0.19, 0.28, 0.14, top=0.85, y0=-0.84, at=(0, 0, 0.045)), 0.02)
 
-    glider = empty("Planador", torso, (0, 1.05, 0.05))
+    glider = empty("Planador", chest, (0, 0.83, 0.05))
     if hero:
         wing = [(0.0, 0.62), (-0.55, 0.05), (-1.05, -0.28), (-0.45, -0.2), (0.0, -0.42),
                 (0.45, -0.2), (1.05, -0.28), (0.55, 0.05)]

@@ -13,10 +13,11 @@ O herói segue as convenções já existentes no projeto, sem pipeline novo:
 
 - **Modelo gerado por script** no Blender (`Tools/Blender/build_models.py`, função `humanoid("heroi")`),
   exportado para `Zeldexile/Assets/Zeldexile/Resources/Models/Characters/heroi.fbx`; fonte editável em
-  `Art/Blender/heroi.blend`. 5.346 triângulos.
-- **Rig de juntas rígidas** (quadril, tronco, cabeça, braços, pernas, planador), o mesmo de antes: cada malha
-  se chama `Junta~Peça@slot` e o Unity remonta a hierarquia (`CharacterRig.Build`). Não há malha com pesos
-  de pele: articulações são resolvidas por peças separadas, como no resto do jogo.
+  `Art/Blender/heroi.blend`. 5.794 triângulos.
+- **Esqueleto de 26 ossos com segmentos rígidos** (detalhes em "Esqueleto" abaixo): cada malha se chama
+  `Osso~Peça@slot` e o Unity remonta a hierarquia (`CharacterRig.Build`). Cada peça pertence a um osso, então
+  cotovelos, joelhos, pulsos, tornozelos, coluna e pescoço dobram. Não há malha com pesos de pele: as juntas
+  são cobertas por peças de junta (esferas de manga no cotovelo, de calça no joelho), como no resto do jogo.
 - **Cores por slot**, sem texturas: `RigStyle.Hero` e `RigStyle.ColorFor` definem a paleta, tirada das áreas
   de cor base da referência (não dos brilhos e sombras). O cel shading vem dos shaders `Zeldexile/Toon` e
   `Zeldexile/ToonOutline`.
@@ -34,6 +35,37 @@ O herói segue as convenções já existentes no projeto, sem pipeline novo:
 | Cinto e bolsa | Cinto marrom com fivela de latão; bolsa no **quadril direito**; alça do **ombro esquerdo** ao quadril direito, na frente e nas costas |
 | Espada | Lâmina reta de aço com ponta, guarda de latão, cabo escuro, pomo; na **mão direita** |
 | Escudo | Redondo, madeira com tábuas marcadas, aro de ferro, umbo central, 8 rebites, correia interna; no **antebraço esquerdo** |
+
+## Esqueleto
+
+```
+Quadril (raiz, centro de gravidade)
+ ├ Tronco (lombar: cintura, cinto) ─ Bolsa (secundário, balança)
+ │  └ Tórax (peito, gola, alça, equipamento nas costas) ─ Planador
+ │     ├ Pescoço ─ Cabeça ─ Mandíbula
+ │     └ Clavícula E/D ─ Braço E/D (ombro) ─ Cotovelo E/D ─ Pulso E/D ─ Dedos E/D
+ └ Perna E/D (quadril) ─ Joelho E/D ─ Tornozelo E/D ─ Ponta do pé E/D
+```
+
+| Osso | O que move | Como é animado |
+|---|---|---|
+| Quadril | Corpo inteiro | No chão, a altura vem das pernas: desce até o calcanhar, a ponta do pé ou o joelho mais baixo tocar o solo |
+| Tronco + Tórax | Coluna em dois segmentos | Cada pose dá uma rotação de tronco; a lombar fica com 45% e o peito com 55% |
+| Pescoço + Cabeça | Olhar | O pescoço fica com 40% da rotação da cabeça |
+| Mandíbula | Queixo e boca | Abre no grito do golpe pesado, na estocada e no dano |
+| Clavículas | Ombro | Sobem e avançam sozinhas quando o braço sobe ou vai à frente |
+| Cotovelos | Antebraço, escudo | Dobra em todas as poses: guarda, recuo antes do golpe, extensão no corte |
+| Pulsos | Mão e o que ela segura | Engatilha antes do corte e estala na passagem; espada e arco presos aqui |
+| Dedos | Dedos | Fecham ao segurar espada, escudo, arco, parede e planador; abrem ao arremessar e soltar a flecha |
+| Joelhos | Canela e bota | Flexão na passada, agachamento, ajoelhar, aterrissagem, estocada |
+| Tornozelos | Pé | No chão o pé fica plano; levanta o calcanhar no impulso da passada; aponta no nado e no pulo |
+| Pontas dos pés | Biqueira | Dobram quando o calcanhar sobe e no joelho apoiado |
+| Bolsa | Bolsa do quadril | Mola amortecida: fica para trás na corrida e quica com o quadril |
+
+**Fora do esqueleto, de propósito:** ossos de torção do braço, do antebraço, da coxa e da canela só servem
+para distribuir rotação numa malha com pesos, que este modelo não tem. O rig facial com dezenas de ossos e as
+três falanges por dedo não cabem no rosto chapado e nas mãos de bloco único do low-poly. Cabelo e alças continuam
+rígidos.
 
 ## Equipamento por estado
 
@@ -55,8 +87,9 @@ junta de pulso.
 
 ## Animações
 
-Procedurais, em `CharacterAnimator` (mesmo sistema de antes), dirigidas pelas ações reais do jogo. O
-deslocamento continua sendo do código (`PlayerMotor`); a animação não move o personagem.
+Procedurais, em `CharacterAnimator`, dirigidas pelas ações reais do jogo. O deslocamento continua sendo do
+código (`PlayerMotor`); a animação não move o personagem. Cada pose define os ossos principais; coluna,
+pescoço, clavículas, pés no chão, altura do quadril e bolsa são derivados automaticamente.
 
 | Ação do jogo | Animação | Pose da referência |
 |---|---|---|
@@ -77,10 +110,10 @@ deslocamento continua sendo do código (`PlayerMotor`); a animação não move o
 | `Tools/Blender/build_models.py` | Herói refeito (`humanoid`, `round_shield`), slots novos |
 | `Art/Blender/heroi.blend`, `Resources/Models/Characters/heroi.fbx` | Modelo regenerado |
 | `Art/Referencias/aventureiro-seis-poses.png` (+ prompt) | Referência dentro do repositório |
-| `Scripts/Runtime/Characters/CharacterRig.cs` | Paleta do herói, slots novos, `Classify`/`GearPart` |
+| `Scripts/Runtime/Characters/CharacterRig.cs` | Esqueleto de 26 ossos, pontos de contato com o chão, paleta, `Classify`/`GearPart` |
 | `Scripts/Runtime/Characters/ModelLibrary.cs` | Slots finos sem contorno |
 | `Scripts/Runtime/Characters/HeroPresenter.cs` | Equipamento por estado, pivô da lâmina no punho |
-| `Scripts/Runtime/Characters/CharacterAnimator.cs` | Escudo no antebraço, defesa cruzada |
+| `Scripts/Runtime/Characters/CharacterAnimator.cs` | Poses com todos os ossos, movimento derivado, pés plantados, mola da bolsa |
 | `Scripts/Runtime/Gameplay/CharacterShowcase.cs` | Vitrine com todas as ações |
 | `Scripts/Runtime/Gameplay/BuildCapture.cs` | `Zeldexile.exe -vitrine` abre a vitrine |
 | `Scripts/Editor/PrototypeSceneBuilder.cs`, `WindowsBuild.cs` | Cena `Showcase.unity` e inclusão na build |
@@ -112,9 +145,10 @@ deslocamento continua sendo do código (`PlayerMotor`); a animação não move o
 
 ## Limitações reais
 
-- **Sem pele com pesos nem cotovelo/pulso:** o rig do projeto tem juntas rígidas no ombro e no quadril. Braços e
-  pernas dobram como peças inteiras, então poses como o agachamento e a defesa aproximam a referência em vez de
-  reproduzi-la. Resolver pede um rig com cotovelo, joelho e pulso (e malha com pesos), uma mudança de pipeline.
+- **Segmentos rígidos, sem pele com pesos:** o esqueleto dobra em todas as juntas, mas cada peça é rígida. Em
+  dobras fortes, as esferas de junta cobrem a emenda em vez de a malha se deformar. Malha com pesos e ossos de
+  torção seriam uma mudança de pipeline.
+- **Sem IK de mãos:** os pés se ajustam ao chão plano, mas as mãos não procuram o objeto ou a parede.
 - **Sem texturas:** materiais são cores chapadas por slot com o toon do projeto; madeira, couro e metal se
   distinguem por cor, contorno e geometria (tábuas, rebites), não por textura.
 - **Expressões faciais:** o rosto é fixo; não há animação facial.
