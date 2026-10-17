@@ -121,6 +121,8 @@ namespace Zeldexile.Characters
             BorrowGear(rig, style);
             rig.HipsHeight = rig.Hips.localPosition.y;
             rig.FindContacts(0f);
+            rig.Walk = MotionClip.Load(style.WalkClip);
+            rig.Run = MotionClip.Load(style.RunClip);
             return rig;
         }
 
@@ -140,7 +142,7 @@ namespace Zeldexile.Characters
         /// Spine01, Spine under the neck) where Mixamo counts bottom-up. The bone above the hips becomes "Spine",
         /// the one carrying the neck and shoulders "Spine2", one in between "Spine1".
         /// </summary>
-        private static Dictionary<string, Transform> CanonicalBones(Transform model)
+        internal static Dictionary<string, Transform> CanonicalBones(Transform model)
         {
             var raw = new Dictionary<string, Transform>(System.StringComparer.OrdinalIgnoreCase);
             foreach (var t in model.GetComponentsInChildren<Transform>(true))

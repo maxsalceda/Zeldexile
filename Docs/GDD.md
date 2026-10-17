@@ -34,7 +34,7 @@ para lugar não visto, puzzle com solução única, regra que vale só para o jo
 |---|---|---|
 | Vida | Corações em quartos; containers com 4 Orbes Espirituais; corações amarelos temporários de comida | 3 → 20 corações (12 → 80 pontos) |
 | Stamina | Roda de 1000 unidades; Vessels de 200 (4 orbes); 3 rodas no máximo; zerar exaure até encher | Corrida 110/s, escalada 95/s (lateral 50 %), salto de escalada 150, nado 130/s, dash 200, planador 25/s, mira aérea 250/s; regen 300/s após 0,5 s |
-| Movimento | Andar 4 m/s, correr 7 m/s, escalar 2 m/s, nadar 2,4 m/s | Chuva: escalada +20 % e escorregões |
+| Movimento | Andar 1,6 m/s (ritmo do clipe de caminhada), correr 7 m/s, controle no ar 4 m/s, escalar 2 m/s, nadar 2,4 m/s | Chuva: escalada +20 % e escorregões |
 | Queda | Sem dano até 6 m; 1 coração até 12 m; +1 por 3 m; morte a 30 m; planador aberto ou água funda anulam | |
 | Dano recebido | `max(1, ataque − defesa)`; fogo, raio, queda e clima ignoram defesa | |
 | Dano causado | ataque da arma × multiplicador × bônus Potente; furtivo ×8, congelado ×3, último golpe ×2 | |
@@ -154,3 +154,4 @@ com o "HUD mínimo" (só corações). Música esparsa; o som do mundo guia.
 | 17/10/2026 | Custos de escalada (95/s a 2 m/s) e nado (130/s a 2,4 m/s) calibrados para a ilha atual (Mesa Alta de 26 m e lago continuam fora do alcance de uma roda); a aba "Valores propostos" da Bíblia traz 70/s e 60/s como alvo para o mapa final. |
 | 17/10/2026 | Herói jogável refeito a partir da referência de seis poses (`Docs/Personagem-Aventureiro.md`) e ganhou esqueleto de 26 ossos com segmentos rígidos: coluna em dois segmentos, pescoço, mandíbula, clavículas, cotovelos, pulsos, dedos, joelhos, tornozelos, pontas dos pés e bolsa secundária. Pés plantados e altura do quadril vêm das pernas. Ossos de torção, rig facial e falanges ficaram de fora por não terem efeito numa malha rígida low-poly. |
 | 17/10/2026 | **Primeira região do mundo aberto: Vale dos Pomares** (1 km², 25 setores de 200 m com ids estáveis). Região descrita em dados (`Resources/World/Regions/vale_inicial.json`) e montada em tempo de execução com sementes fixas; vizinhos futuros se encaixam pelo contrato de borda. Natureza instanciada a partir de modelos do Blender. Ver [Regiao-Vale-Inicial.md](Regiao-Vale-Inicial.md). |
+| 17/10/2026 | Herói do Meshy com clipes de captura: caminhada e corrida tocam os clipes do Meshy (`Resources/Models/Skinned/Animacoes`), sincronizados com o chão. Andar passou de 4 para 1,6 m/s, o ritmo do clipe; o controle no ar ficou em 4 m/s para os saltos manterem o alcance. |

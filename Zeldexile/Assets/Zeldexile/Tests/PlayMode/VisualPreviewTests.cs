@@ -172,12 +172,13 @@ namespace Zeldexile.Tests
         }
 
         /// <summary>
-        /// Motion review, seen from the side: one row of frames each for the walk (4 m/s), the run (7.5 m/s), the
+        /// Motion review, seen from the side: one row of frames each for the walk (1.5 m/s), the run (7.5 m/s), the
         /// flat slash, the overhead slash and the heavy chop. Saved as Logs/preview-motion.png.
         /// </summary>
         [UnityTest]
         public IEnumerator RenderMotionSheet()
         {
+            const float WalkSpeed = 1.5f;
             const int frames = 8, cellW = 300, cellH = 380;
             var rows = new[] { "walk", "run", "slash", "overhead", "heavy" };
             var sheet = new Texture2D(frames * cellW, rows.Length * cellH, TextureFormat.RGB24, false);
@@ -202,7 +203,7 @@ namespace Zeldexile.Tests
                 var moving = kind == "walk" || kind == "run";
                 // Side view: walking toward screen right; swings seen three-quarter so the trunk twist shows.
                 var hero = Hero(stage.transform, Vector3.zero, moving ? 90f : 125f, Locomotion.Grounded,
-                    kind == "walk" ? new Vector3(0f, 0f, 4f) : kind == "run" ? new Vector3(0f, 0f, 7.5f) : Vector3.zero,
+                    kind == "walk" ? new Vector3(0f, 0f, WalkSpeed) : kind == "run" ? new Vector3(0f, 0f, 7.5f) : Vector3.zero,
                     ActionKind.None, 0f, moving ? "" : "armed");
                 var animator = hero.GetComponent<CharacterAnimator>();
                 // FixedSource velocity is world space; the walk reads its length only.
@@ -212,8 +213,14 @@ namespace Zeldexile.Tests
                 {
                     if (moving)
                     {
-                        // One full stride over the row: 2 steps of strideLength 1.5 m (x1.3 when running).
-                        var period = kind == "walk" ? 3f / 4f : 3.9f / 7.5f;
+                        // One full stride over the row: a captured loop when the rig has one, else 2 procedural steps.
+                        var rig = animator.Rig;
+                        var clip = kind == "walk" ? rig.Walk : rig.Run;
+                        var speed = kind == "walk" ? WalkSpeed : 7.5f;
+                        var period = clip != null ? Mathf.Max(clip.CycleDistance / speed, clip.Duration / 1.6f)
+                            : (kind == "walk" ? 3f : 3.9f) / speed;
+                        if (f == 0 && clip != null)
+                            Debug.Log($"Clipe {kind}: {clip.Speed:F2} m/s, ciclo {clip.CycleDistance:F2} m em {clip.Duration:F2} s");
                         yield return new WaitForSeconds(period / frames);
                     }
                     else

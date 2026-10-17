@@ -31,7 +31,10 @@ namespace Zeldexile.Player
         public PlayerTargeting Targeting;
 
         [Header("Ground")]
-        [SerializeField] private float walkSpeed = 4f;
+        /// <summary>The pace of the hero's captured walk (Meshy clip, about 1.5 m/s): the feet stay planted.</summary>
+        [SerializeField] private float walkSpeed = 1.6f;
+        /// <summary>Steering speed in the air: jumps keep the reach they had before the walk slowed down.</summary>
+        [SerializeField] private float airSpeed = 4f;
         [SerializeField] private float sprintSpeed = 7f;
         [SerializeField] private float jumpHeight = 1.3f;
         [SerializeField] private float gravity = -22f;
@@ -301,7 +304,7 @@ namespace Zeldexile.Player
             if (_fallTracked) _fallStartY = Mathf.Max(_fallStartY, transform.position.y);
 
             var horizontal = new Vector3(_velocity.x, 0f, _velocity.z);
-            var target = moveDir * Mathf.Max(walkSpeed, horizontal.magnitude);
+            var target = moveDir * Mathf.Max(airSpeed, horizontal.magnitude);
             horizontal = Vector3.MoveTowards(horizontal, target, 10f * dt);
             _velocity = new Vector3(horizontal.x, _velocity.y, horizontal.z);
 

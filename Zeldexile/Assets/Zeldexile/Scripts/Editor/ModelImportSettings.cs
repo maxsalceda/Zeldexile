@@ -24,9 +24,11 @@ namespace Zeldexile.EditorTools
                 importer.useFileScale = true;
                 importer.bakeAxisConversion = false;
                 importer.materialImportMode = ModelImporterMaterialImportMode.None;
-                // Generic keeps the skinned mesh and its bone transforms; the clip is unused (poses are procedural).
+                // Generic keeps the skinned mesh and its bone transforms. Only the clips under Animacoes are read
+                // (MotionClip samples them); the models' own clips are not.
                 importer.animationType = ModelImporterAnimationType.Generic;
-                importer.importAnimation = false;
+                importer.importAnimation = assetPath.Contains("/Animacoes/");
+                importer.animationCompression = ModelImporterAnimationCompression.Off;
                 importer.optimizeGameObjects = false;
                 importer.importCameras = false;
                 importer.importLights = false;

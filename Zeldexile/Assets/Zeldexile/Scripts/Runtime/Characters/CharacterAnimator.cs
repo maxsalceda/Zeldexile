@@ -94,6 +94,7 @@ namespace Zeldexile.Characters
         public bool ActionPlaying => CurrentAction != ActionKind.None && ActionProgress < 1f;
 
         private float _phase;
+        private float _clipProgress;
         private float _actionStart = -10f;
         private float _actionDuration;
         private int _actionIndex;
@@ -166,7 +167,7 @@ namespace Zeldexile.Characters
                 case Locomotion.Climbing: pose = Climbing(velocity, dt); break;
                 case Locomotion.Gliding: pose = Gliding(); break;
                 case Locomotion.Swimming: pose = Swimming(speed, dt); break;
-                default: pose = Ground(speed, run, dt); break;
+                default: pose = Rig.Walk != null || Rig.Run != null ? CapturedGround(speed, dt) : Ground(speed, run, dt); break;
             }
 
             if (grounded)
@@ -272,7 +273,7 @@ namespace Zeldexile.Characters
 
         private static Quaternion S(Quaternion a, Quaternion b, float t) => Quaternion.Slerp(N(a), N(b), t);
 
-        private static Pose Mix(Pose a, Pose b, float t)
+        internal static Pose Mix(Pose a, Pose b, float t)
         {
             return new Pose
             {
@@ -455,6 +456,45 @@ namespace Zeldexile.Characters
                 FootFreeL = FootFree(pL, liftOff) * moving,
                 FootFreeR = FootFree(pR, liftOff) * moving
             };
+        }
+
+        /// <summary>
+        /// Walk and run from the captured loops (<see cref="CharacterRig.Walk"/>, <see cref="CharacterRig.Run"/>).
+        /// Each loop plays at the cadence that keeps its planted foot still on the ground, up to 1.9 times its own
+        /// pace; between the two speeds the loops cross-fade on a shared, heel-strike-aligned progress. Standing
+        /// still, the procedural idle takes over; the drawn sword and the forearm shield keep their procedural
+        /// holds on top of the clip's arm swing.
+        /// </summary>
+        private Pose CapturedGround(float speed, float dt)
+        {
+            var walk = Rig.Walk ?? Rig.Run;
+            var runClip = Rig.Run ?? Rig.Walk;
+            var idle = Ground(0f, 0f, dt);
+            var moving = Mathf.SmoothStep(0f, 1f, speed / 0.6f);
+            var walkTop = walk.Speed * 1.2f;
+            var runW = runClip == walk ? 0f
+                : Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(walkTop, Mathf.Max(walkTop + 0.5f, runClip.Speed * 0.9f), speed));
+            var cycle = Mathf.Lerp(walk.CycleDistance, runClip.CycleDistance, runW);
+            var maxRate = 1.9f / Mathf.Lerp(walk.Duration, runClip.Duration, runW);
+            if (speed > 0.05f) _clipProgress += Mathf.Min(speed / Mathf.Max(0.05f, cycle), maxRate) * dt;
+
+            var gait = walk.Sample(_clipProgress + walk.LeftStrike);
+            if (runW > 0f) gait = Mix(gait, runClip.Sample(_clipProgress + runClip.LeftStrike), runW);
+            if (Armed)
+            {
+                gait.ArmR = idle.ArmR;
+                gait.ElbowR = idle.ElbowR;
+                gait.WristR = idle.WristR;
+                gait.FingersR = idle.FingersR;
+            }
+
+            if (ShieldInHand)
+            {
+                gait.ElbowL = idle.ElbowL;
+                gait.FingersL = idle.FingersL;
+            }
+
+            return Mix(idle, gait, moving);
         }
 
         private static Pose Airborne(float verticalSpeed)

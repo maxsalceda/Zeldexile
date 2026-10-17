@@ -24,6 +24,9 @@ namespace Zeldexile.Characters
         /// <see cref="SkinnedRigDriver"/>. Takes precedence over <see cref="Model"/>, which stays as the fallback.
         /// </summary>
         public string SkinnedModel;
+        /// <summary>Captured walk and run loops for the skinned model (Resources/Models/Skinned/Animacoes).</summary>
+        public string WalkClip;
+        public string RunClip;
 
         public Color ColorFor(string slot)
         {
@@ -74,7 +77,9 @@ namespace Zeldexile.Characters
             // Zeldexile/ToonOutlineSmooth. "heroi_npr" is its faceted low-poly export; "heroi" the build_models.py hero.
             Model = "heroi_anime",
             // heroi_meshy: the Meshy AI export of the same hero (sword and shield are part of its mesh).
-            SkinnedModel = "heroi_meshy"
+            SkinnedModel = "heroi_meshy",
+            WalkClip = "heroi_meshy_andar",
+            RunClip = "heroi_meshy_correr"
         };
 
         /// <summary>A creature style tinted by its tier: red, blue, black or silver.</summary>
@@ -160,6 +165,9 @@ namespace Zeldexile.Characters
         /// <summary>Secondary bone: the satchel on the right hip.</summary>
         public Transform Bag;
         public Transform Glider;
+        /// <summary>Captured gait loops; when set, the animator walks and runs with them instead of its own curves.</summary>
+        public MotionClip Walk;
+        public MotionClip Run;
 
         public float HipsHeight { get; internal set; }
 

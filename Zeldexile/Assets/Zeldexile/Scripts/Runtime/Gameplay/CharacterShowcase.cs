@@ -37,7 +37,7 @@ namespace Zeldexile.Gameplay
         public static readonly Step[] Steps =
         {
             new Step { Label = "Repouso", Seconds = 2.5f, Stance = "" },
-            new Step { Label = "Caminhada (4 m/s)", Seconds = 3f, Speed = 4f, Stance = "" },
+            new Step { Label = "Caminhada (1,6 m/s)", Seconds = 3f, Speed = 1.6f, Stance = "" },
             new Step { Label = "Corrida (7 m/s)", Seconds = 2.5f, Speed = 7f, Stance = "" },
             new Step { Label = "Em guarda", Seconds = 1.5f, Stance = "armed" },
             new Step { Label = "Combo de espada", Seconds = 2.2f, Stance = "armed", Action = ActionKind.SlashLight, Repeat = 0.42f },
