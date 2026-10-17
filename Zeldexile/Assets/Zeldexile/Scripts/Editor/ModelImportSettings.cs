@@ -11,10 +11,35 @@ namespace Zeldexile.EditorTools
     {
         public const string ModelsFolder = "Assets/Zeldexile/Resources/Models";
 
+        /// <summary>Skinned models (the Meshy hero): bones and skin weights kept, the game poses the bones itself.</summary>
+        public const string SkinnedFolder = ModelsFolder + "/Skinned";
+
         private void OnPreprocessModel()
         {
             if (!assetPath.StartsWith(ModelsFolder)) return;
             var importer = (ModelImporter)assetImporter;
+            if (assetPath.StartsWith(SkinnedFolder))
+            {
+                importer.globalScale = 1f;
+                importer.useFileScale = true;
+                importer.bakeAxisConversion = false;
+                importer.materialImportMode = ModelImporterMaterialImportMode.None;
+                // Generic keeps the skinned mesh and its bone transforms; the clip is unused (poses are procedural).
+                importer.animationType = ModelImporterAnimationType.Generic;
+                importer.importAnimation = false;
+                importer.optimizeGameObjects = false;
+                importer.importCameras = false;
+                importer.importLights = false;
+                importer.importBlendShapes = false;
+                importer.importVisibility = false;
+                importer.importNormals = ModelImporterNormals.Import;
+                importer.importTangents = ModelImporterTangents.None;
+                // SkinnedHero reads the skin weights to repair the Meshy bindposes.
+                importer.isReadable = true;
+                importer.addCollider = false;
+                return;
+            }
+
             importer.globalScale = 1f;
             importer.useFileScale = true;
             importer.bakeAxisConversion = true;

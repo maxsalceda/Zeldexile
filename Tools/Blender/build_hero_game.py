@@ -13,8 +13,14 @@ em pose de descanso, e converte o resultado para as convenções de build_models
 Saída: <Resources/Models/Characters>/heroi_npr.fbx e Art/Blender/heroi_npr.blend. Nada substitui o heroi.fbx
 atual: para o jogo usar este modelo, mude RigStyle.Hero.Model para "heroi_npr".
 
+Modo suave (--anime): em vez do low-poly, exporta o próprio modelo HD (pose de descanso) com Subdivision nível 1,
+o Bevel de 3 segmentos das peças duras, faces suaves e as normais customizadas do rosto (o Data Transfer da esfera
+"Rosto Normais" já aplicado). O contorno do Blender sai: no jogo ele é o shader Zeldexile/ToonOutlineSmooth, que
+o ModelLibrary usa só para este modelo. A normal de cada vértice vai no FBX como normal customizada (o Unity a
+importa com importNormals = Import). Saída: heroi_anime.fbx / heroi_anime.blend.
+
 Uso:
-  blender.exe -b -P Tools/Blender/build_hero_game.py -- [<Resources/Models dir>] [<blend dir>] [<render dir>]
+  blender.exe -b -P Tools/Blender/build_hero_game.py -- [--anime] [<Resources/Models dir>] [<blend dir>] [<render dir>]
 """
 
 import math
@@ -31,10 +37,13 @@ sys.path.insert(0, HERE)
 import build_hero_hd as hd  # noqa: E402
 
 ARGS = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
+SMOOTH = "--anime" in ARGS
+ARGS = [a for a in ARGS if not a.startswith("--")]
 MODELS_DIR = os.path.abspath(ARGS[0]) if len(ARGS) > 0 else os.path.join(ROOT, "Zeldexile", "Assets", "Zeldexile", "Resources", "Models")
 BLEND_DIR = os.path.abspath(ARGS[1]) if len(ARGS) > 1 else os.path.join(ROOT, "Art", "Blender")
 RENDER_DIR = os.path.abspath(ARGS[2]) if len(ARGS) > 2 else os.path.join(ROOT, "Art", "Render")
-NAME = "heroi_npr"
+NAME = "heroi_anime" if SMOOTH else "heroi_npr"
+ANIME_SUBDIV = 1  # nível de Subdivision no modo suave (o HD usa 2)
 
 # Ossos que o CharacterRig conhece. Malhas sob "Espada"/"Escudo" pertencem ao osso acima deles.
 BONES = {
@@ -91,10 +100,11 @@ def bone_of(ob):
 
 
 def finish(bm, part, slot, bone, chamfer):
-    """Como build_models.finish: chanfro, origem no centro, normais para fora, faces chapadas, nome e slot."""
+    """Como build_models.finish: chanfro, origem no centro, normais para fora, faces chapadas, nome e slot.
+    No modo suave o chanfro é arredondado (3 segmentos) e as faces ficam suaves."""
     bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=1e-5)
     if chamfer > 0:
-        bmesh.ops.bevel(bm, geom=list(bm.edges), offset=chamfer, offset_type="OFFSET", segments=1,
+        bmesh.ops.bevel(bm, geom=list(bm.edges), offset=chamfer, offset_type="OFFSET", segments=3 if SMOOTH else 1,
                         profile=0.5, affect="EDGES", clamp_overlap=True)
     lo = Vector((min(v.co.x for v in bm.verts), min(v.co.y for v in bm.verts), min(v.co.z for v in bm.verts)))
     hi = Vector((max(v.co.x for v in bm.verts), max(v.co.y for v in bm.verts), max(v.co.z for v in bm.verts)))
@@ -106,16 +116,96 @@ def finish(bm, part, slot, bone, chamfer):
     bm.normal_update()
     if sum(f.calc_center_median().dot(f.normal) * f.calc_area() for f in bm.faces) < 0:
         bmesh.ops.reverse_faces(bm, faces=bm.faces)
+    if SMOOTH:
+        bmesh.ops.triangulate(bm, faces=bm.faces)
     mesh = bpy.data.meshes.new(part)
     bm.to_mesh(mesh)
     bm.free()
     for poly in mesh.polygons:
-        poly.use_smooth = False
+        poly.use_smooth = SMOOTH
+    return place(mesh, part, slot, bone, center)
+
+
+def place(mesh, part, slot, bone, center):
+    mesh.materials.clear()
     mesh.materials.append(slot_material(slot))
     ob = bpy.data.objects.new(f"{bone}~{part}@{slot}", mesh)
     ob.location = center
     bpy.context.scene.collection.objects.link(ob)
     return ob
+
+
+def smooth_piece(ob, dg, part, slot, bone, anchor, extra=Matrix.Identity(4)):
+    """Modo suave: a malha avaliada do HD (espessura, subdivisão, chanfro e normais do rosto aplicados) em
+    coordenadas do jogo, triangulada, com a normal de cada vértice gravada como normal customizada. Uma normal
+    por vértice (média dos cantos) mantém o casco do contorno fechado: ele cresce ao longo dessa normal.
+    Peças planas (discos do rosto) não têm "fora": recalc_face_normals vira algumas para dentro, o que o Blender
+    desenha mas o Unity descarta (backface culling). Elas são viradas para longe de `anchor` (o osso)."""
+    me = bpy.data.meshes.new_from_object(ob.evaluated_get(dg), preserve_all_data_layers=True, depsgraph=dg)
+    me.calc_normals_split()
+    acc = [Vector() for _ in me.vertices]
+    for loop in me.loops:
+        acc[loop.vertex_index] += loop.normal
+    m = extra @ TURN @ ob.matrix_world
+    nm = m.to_3x3().inverted().transposed()
+    normals = [(nm @ n).normalized() if n.length > 1e-8 else Vector((0, 0, 1)) for n in acc]
+    bm = bmesh.new()
+    bm.from_mesh(me)
+    bpy.data.meshes.remove(me)
+    bmesh.ops.triangulate(bm, faces=bm.faces)  # não cria vértices: a ordem continua a das normais
+    for v in bm.verts:
+        v.co = m @ v.co
+    lo = Vector((min(v.co.x for v in bm.verts), min(v.co.y for v in bm.verts), min(v.co.z for v in bm.verts)))
+    hi = Vector((max(v.co.x for v in bm.verts), max(v.co.y for v in bm.verts), max(v.co.z for v in bm.verts)))
+    center = (lo + hi) / 2
+    bm.normal_update()
+    mean = sum((f.normal * f.calc_area() for f in bm.faces), Vector())
+    if mean.length > 1e-9 and all(f.normal.dot(mean.normalized()) > 0.9 for f in bm.faces):
+        if mean.dot(center - anchor) < 0:
+            bmesh.ops.reverse_faces(bm, faces=bm.faces)
+            normals = [-n for n in normals]
+    for v in bm.verts:
+        v.co -= center
+    mesh = bpy.data.meshes.new(part)
+    bm.to_mesh(mesh)
+    bm.free()
+    for poly in mesh.polygons:
+        poly.use_smooth = True
+        poly.material_index = 0
+    mesh.use_auto_smooth = True
+    mesh.auto_smooth_angle = math.pi
+    mesh.normals_split_custom_set_from_vertices(normals)
+    return place(mesh, part, slot, bone, center)
+
+
+def lighter_hd():
+    """Modo suave: menos segmentos que o HD nas esferas pequenas (dedos, rebites, pomo) e nos lofts. Com a
+    Subdivision nível 1 por cima a silhueta continua redonda, e o herói fica na faixa de 30-60 mil triângulos."""
+    sphere, loft = hd.sphere, hd.loft
+
+    def sphere_light(bm, r, at=(0, 0, 0), rotate=(0, 0, 0), seg=16, rings=12):
+        size = r if isinstance(r, (int, float)) else max(r)
+        if size < 0.03:
+            seg, rings = min(seg, 8), min(rings, 6)
+        elif size < 0.08:
+            seg, rings = min(seg, 12), min(rings, 8)
+        sphere(bm, r, at=at, rotate=rotate, seg=seg, rings=rings)
+
+    def loft_light(bm, rings, n=16, **kw):
+        return loft(bm, rings, n=max(6, round(n * 0.75)), **kw)
+
+    hd.sphere, hd.loft = sphere_light, loft_light
+
+
+def prepare_smooth(objects):
+    """Modo suave: tira o contorno do Blender (o jogo desenha o seu) e baixa a subdivisão para ANIME_SUBDIV."""
+    for ob in objects:
+        if "Contorno" in ob.modifiers:
+            ob.modifiers.remove(ob.modifiers["Contorno"])
+        for mod in ob.modifiers:
+            if mod.type == "SUBSURF":
+                mod.levels = mod.render_levels = min(mod.levels, ANIME_SUBDIV)
+    bpy.context.view_layer.update()
 
 
 def world_bmesh(ob, dg, extra=Matrix.Identity(4)):
@@ -130,8 +220,10 @@ def world_bmesh(ob, dg, extra=Matrix.Identity(4)):
 
 def convert(J):
     """Converte a coleção "Herói HD" (modo LOW) em malhas soltas no padrão do jogo e apaga a original."""
-    dg = bpy.context.evaluated_depsgraph_get()
     hd_objects = [ob for ob in hd.COLL.objects if ob.type == "MESH" and not ob.hide_render]
+    if SMOOTH:
+        prepare_smooth(hd_objects)
+    dg = bpy.context.evaluated_depsgraph_get()
     sword_frame = TURN @ J["Espada"].matrix_world
     shield_frame = TURN @ J["Escudo"].matrix_world
     chest = TURN @ J["Tórax"].matrix_world.translation
@@ -147,16 +239,23 @@ def convert(J):
     made = []
     for ob in hd_objects:
         part = ob.name
-        slot = SLOT_BY_PART.get(part.split(" ")[0], SLOTS.get(ob.get("slot", ""), "accent"))
+        # Modo LOW grava o slot no objeto; no modo suave ele vem do material ("iris (chapado)" -> "iris").
+        key = ob.get("slot") or ob.data.materials[0].name.split(" (")[0]
+        slot = SLOT_BY_PART.get(part.split(" ")[0], SLOTS.get(key, "accent"))
         if part.startswith("Olho"):
             slot = SLOT_BY_NAME.get(part.split(" ")[-1], slot)
         chamfer = float(ob.get("chamfer", 0.0)) or (0.01 if part.rstrip(" ED0123456789") in CHAMFERED else 0.0)
-        bone = bone_of(ob)
-        made.append(finish(world_bmesh(ob, dg), part, slot, bone, chamfer))
+        copies = [(part, bone_of(ob), Matrix.Identity(4))]
         if part.startswith("Arma"):
-            made.append(finish(world_bmesh(ob, dg, to_sword_back), part.replace("Arma", "Arma Costas", 1), slot, "Tórax", chamfer))
+            copies.append((part.replace("Arma", "Arma Costas", 1), "Tórax", to_sword_back))
         elif part.startswith("Escudo"):
-            made.append(finish(world_bmesh(ob, dg, to_shield_back), part.replace("Escudo", "Escudo Costas", 1), slot, "Tórax", chamfer))
+            copies.append((part.replace("Escudo", "Escudo Costas", 1), "Tórax", to_shield_back))
+        for name, bone, extra in copies:
+            if SMOOTH:
+                anchor = extra @ TURN @ J[bone_of(ob)].matrix_world.translation
+                made.append(smooth_piece(ob, dg, name, slot, bone, anchor, extra))
+            else:
+                made.append(finish(world_bmesh(ob, dg, extra), name, slot, bone, chamfer))
 
     # Bainha de couro em volta da lâmina guardada; arco simples na mão esquerda e nas costas.
     bm = bmesh.new()
@@ -215,9 +314,11 @@ def export():
         apply_scale_options="FBX_SCALE_UNITS",
         axis_forward="-Z", axis_up="Y",
         bake_space_transform=True,
-        mesh_smooth_type="FACE",
+        # Modo suave: as normais (customizadas) vão como estão, e a malha já sai triangulada: triangular na
+        # exportação passaria pelo bmesh de novo.
+        mesh_smooth_type="OFF" if SMOOTH else "FACE",
         use_mesh_modifiers=True,
-        use_triangles=True,
+        use_triangles=not SMOOTH,
         add_leaf_bones=False,
         bake_anim=False,
     )
@@ -253,8 +354,10 @@ def preview():
 
 def main():
     bpy.ops.wm.read_homefile(use_empty=True)
-    hd.LOW = True
+    hd.LOW = not SMOOTH
     hd.POSE = False
+    if SMOOTH:
+        lighter_hd()
     J = hd.build_hero()
     convert(J)
     tris, meshes = export()

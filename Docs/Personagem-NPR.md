@@ -1,8 +1,10 @@
 # Herói em alta (NPR / cel shading) — Blender + EEVEE
 
 Versão de alta resolução do aventureiro, em estilo anime (cel shading de dois tons, contorno preto, rosto
-com sombra lisa). É **arte para render, concept ou fonte de baking**; não é o herói do jogo, que continua
-sendo o low-poly chanfrado de `Tools/Blender/build_models.py` (ver [Personagem-Aventureiro.md](Personagem-Aventureiro.md)).
+com sombra lisa). É **arte para render, concept ou fonte de baking**; o jogo usa uma exportação suave dele
+(`heroi_anime`, ver [Versão do jogo em uso](#versão-do-jogo-em-uso-modo-suave-heroi_anime)) com o shader
+`Zeldexile/ToonOutlineSmooth`. O herói anterior, de `Tools/Blender/build_models.py`, continua no projeto
+(ver [Personagem-Aventureiro.md](Personagem-Aventureiro.md)).
 
 Referência: [Art/Referencias/aventureiro-quatro-vistas.png](../Art/Referencias/aventureiro-quatro-vistas.png)
 (frente 3/4, costas, perfil defensivo, 3/4 de costas).
@@ -21,6 +23,8 @@ Referência: [Art/Referencias/aventureiro-quatro-vistas.png](../Art/Referencias/
 | `Tools/Blender/build_hero_game.py` | Versão para o jogo: low-poly chanfrado, FBX plano com os ossos do CharacterRig |
 | `Zeldexile/.../Resources/Models/Characters/heroi_npr.fbx`, `Art/Blender/heroi_npr.blend` | Modelo do jogo (não substitui o `heroi.fbx`) |
 | `Art/Render/heroi_npr_previa.png` | Prévia do low-poly (Workbench, cores por slot) |
+| `Zeldexile/.../Resources/Models/Characters/heroi_anime.fbx`, `Art/Blender/heroi_anime.blend` | **Modelo que o jogo usa**: versão suave (`build_hero_game.py -- --anime`) |
+| `Zeldexile/.../Resources/Shaders/ToonOutlineSmooth.shader` | Shader do modelo suave: banda dura de dois tons + contorno ao longo da normal |
 
 Contagem: **20.882 triângulos na malha base**; **226.920 avaliados** (com Subdivision Surface e espessura da
 jaqueta/gola) e **425.432 com o contorno** (o inverted hull duplica cada malha que o usa). Para comparar, o
@@ -136,14 +140,80 @@ dada rotacionando esses empties (`pose()` no script), com esferas cobrindo as ju
 | Espada | Lâmina de seção losango com Bevel, guarda e pomo de latão, cabo escuro; na mão direita, continuando a linha do braço |
 | Escudo | Disco de madeira abaulado, aro de aço (sem tampas), umbo, 8 rebites, linhas de tábua; preso ao antebraço esquerdo, face virada para a frente |
 
-## Versão para o jogo (`heroi_npr`)
+## Versão do jogo em uso: modo suave (`heroi_anime`)
+
+![Render HD do EEVEE à esquerda; no Unity: close do rosto e folha de poses](../Art/Render/heroi_anime_unity.png)
+
+O low-poly facetado (`heroi_npr`, seção seguinte) não lia como anime no motor. O jogo usa agora a versão
+suave, exportada do próprio modelo HD:
+
+```bash
+"E:/Steam/steamapps/common/Blender/blender.exe" -b -P Tools/Blender/build_hero_game.py -- --anime
+```
+
+Saída: `Resources/Models/Characters/heroi_anime.fbx` e `Art/Blender/heroi_anime.blend` (prévia Workbench em
+`Art/Render/heroi_anime_{frente,costas}.png`). `RigStyle.Hero.Model = "heroi_anime"`; voltar ao facetado é trocar
+a string para `"heroi_npr"`. **63.788 triângulos, 175 malhas, 26 ossos**; contando só o que aparece de cada vez
+(espada e escudo existem na mão e nas costas), ~55 mil.
+
+### O que o modo `--anime` faz (`build_hero_game.py`)
+
+- Constrói o HD (`LOW = False`, `POSE = False`) com menos segmentos (`lighter_hd`): esferas com menos de 3 cm
+  (dedos, rebites) em 8×6, até 8 cm em 12×8, lofts com ¾ dos lados. Sem isso eram 113 mil triângulos.
+- `prepare_smooth`: tira o modificador **Contorno** (o jogo desenha o seu) e baixa toda Subdivision para o
+  nível 1 (`ANIME_SUBDIV`). Ficam a espessura da jaqueta/gola/mangas, o **Bevel de 3 segmentos** das peças duras
+  e o **Data Transfer** da esfera "Rosto Normais".
+- `smooth_piece`: copia a malha **avaliada** (`new_from_object`), gira para os eixos do jogo, triangula e grava
+  **uma normal por vértice** (média dos cantos) como normal customizada (`normals_split_custom_set_from_vertices`).
+  No rosto essa normal é a da esfera; nas outras peças, a normal suave. A triangulação é feita aqui porque a do
+  exportador passa de novo pelo bmesh; o FBX sai com `mesh_smooth_type = "OFF"` e `use_triangles = False`.
+- Peças planas e abertas (discos do olho, pálpebra, boca, sobrancelha) não têm lado de fora, e
+  `recalc_face_normals` vira algumas para dentro: o Blender desenha as duas faces, o Unity descarta (a esclera e a
+  íris sumiam). `smooth_piece` vira toda peça plana para longe do seu osso.
+- Mantém as convenções: `Osso~Peça@slot`, origem no centro da peça, ossos como empties soltos, equipamento na
+  mão e "Costas". No modo suave o slot vem do nome do material do HD (`"iris (chapado)"` → `iris`).
+
+O importador (`ModelImportSettings`, `importNormals = Import`) já preserva as normais; não precisou de exceção.
+`ModelImportTests.AnimeHeroIsSmoothAndUsesTheSmoothOutline` confere que o crânio chega com vértices
+compartilhados (malha facetada repete cada vértice por triângulo) e que a jaqueta usa o shader novo.
+
+### Shader `Zeldexile/ToonOutlineSmooth`
+
+`Resources/Shaders/ToonOutlineSmooth.shader`, usado só pelos modelos em `ModelLibrary.SmoothModels`
+(hoje `Characters/heroi_anime`) via `Palette.SmoothToon`; todo o resto continua com `Zeldexile/ToonOutline`.
+
+- **Banda dura de dois tons**, como o `toon_material` do HD: `_BandSoftness = 0,012` (corte quase seco),
+  `_BandOffset = -0,12` (a luz ganha um pouco do lado escuro, sombras mais estreitas), sombra = cor ×
+  `_ShadowTint (0,66; 0,58; 0,72)` × ambiente — mais escura e puxada para o azul. Sem especular, rim ou segunda
+  banda. Sombras projetadas caem na mesma banda.
+- **Contorno por inverted hull ao longo da normal**, em espaço de tela: o casco cresce `_OutlineWidth = 1 cm`
+  convertido em pixels na profundidade do vértice e limitado a `[_OutlineMinPx 1,2; _OutlineMaxPx 3]` px, então a
+  linha fica fina e constante de perto e não some de longe (no giro do jogo, parecida com a do `ToonOutline`).
+  Exige uma normal suave por vértice — por isso a exportação grava uma só.
+- **Recuo de profundidade** `_OutlineDepth = 1,2 cm`: o casco é empurrado para longe da câmera, então o casco
+  da camisa não atravessa a jaqueta que está 1 cm por cima; ele só aparece além da silhueta. (No `ToonOutline` o
+  mesmo problema exigiu a espessura de 4 cm para dentro.)
+- `_OutlineWidth = 0` desliga o casco (slots de `NoOutline`: discos do rosto, nariz, listras);
+  `_Unlit = 1` ignora a luz, como o material chapado dos olhos no HD (slots `iris`, `dark`, `eyewhite`).
+- **Rosto de anime:** a pele da cabeça (`Cabeça~…@skin`/`@nose`) usa `_BandOffset = -0,55` e não recebe sombra
+  projetada. Com as normais da esfera, a banda normal cortava o rosto ao meio em diagonal quando o sol vinha de
+  cima/do lado; assim o rosto fica claro e só escurece com a luz por trás.
+
+Verificado no Unity 6000.6.4f1 em batch: `ModelImportTests` e `VisualPreviewTests` 5/5; prévias em
+`Zeldexile/Logs/preview-hero-{face,mockup,turnaround}.png` e `preview-poses.png`.
+
+Ajustes rápidos: espessura da linha em `_OutlineWidth`/`_OutlineMaxPx`; quantidade de sombra em `_BandOffset`;
+tom da sombra em `_ShadowTint` (tudo no `.shader`, valores padrão). Mais polígonos: `ANIME_SUBDIV = 2` ou
+`lighter_hd` mais generoso (o herói passa de 100 mil triângulos).
+
+## Versão facetada (`heroi_npr`)
 
 ![Prévia do low-poly, cores por slot](../Art/Render/heroi_npr_previa.png)
 
 `Tools/Blender/build_hero_game.py` deriva do mesmo construtor uma versão nas regras do jogo e a exporta
 para `Zeldexile/Assets/Zeldexile/Resources/Models/Characters/heroi_npr.fbx` (fonte: `Art/Blender/heroi_npr.blend`).
-**O jogo usa este modelo** (`RigStyle.Hero.Model = "heroi_npr"` em `CharacterRig.cs`); o `heroi.fbx` anterior
-continua no projeto, e voltar a ele é trocar a string. Verificado no Unity 6000.6.4f1 em batch:
+O jogo usou este modelo até a troca pelo `heroi_anime` (acima); o `heroi.fbx` anterior também
+continua no projeto, e voltar a qualquer um é trocar a string. Verificado no Unity 6000.6.4f1 em batch:
 `ModelImportTests` e `VisualPreviewTests` (4/4) passam, e as prévias `Zeldexile/Logs/preview-hero-*.png` e
 `preview-poses.png` mostram o rig animando o modelo com a troca de equipamento (mão ↔ costas).
 

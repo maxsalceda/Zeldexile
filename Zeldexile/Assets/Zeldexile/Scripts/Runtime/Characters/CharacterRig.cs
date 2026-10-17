@@ -19,6 +19,11 @@ namespace Zeldexile.Characters
         public bool Ponytail;
         /// <summary>Blender model under Resources/Models/Characters. Empty uses the procedural fallback.</summary>
         public string Model;
+        /// <summary>
+        /// Skinned model with a Mixamo skeleton under Resources/Models/Skinned (texture "&lt;name&gt;_cor"), posed through
+        /// <see cref="SkinnedRigDriver"/>. Takes precedence over <see cref="Model"/>, which stays as the fallback.
+        /// </summary>
+        public string SkinnedModel;
 
         public Color ColorFor(string slot)
         {
@@ -65,9 +70,11 @@ namespace Zeldexile.Characters
             Boots = new Color(0.50f, 0.32f, 0.20f),
             Accent = new Color(0.80f, 0.62f, 0.28f),
             Scale = 1f,
-            // heroi_npr: the low-poly export of the NPR hero (Tools/Blender/build_hero_game.py); "heroi" is the
-            // previous build_models.py hero.
-            Model = "heroi_npr"
+            // heroi_anime: the smooth export of the NPR hero (Tools/Blender/build_hero_game.py --anime), drawn with
+            // Zeldexile/ToonOutlineSmooth. "heroi_npr" is its faceted low-poly export; "heroi" the build_models.py hero.
+            Model = "heroi_anime",
+            // heroi_meshy: the Meshy AI export of the same hero (sword and shield are part of its mesh).
+            SkinnedModel = "heroi_meshy"
         };
 
         /// <summary>A creature style tinted by its tier: red, blue, black or silver.</summary>
@@ -154,7 +161,7 @@ namespace Zeldexile.Characters
         public Transform Bag;
         public Transform Glider;
 
-        public float HipsHeight { get; private set; }
+        public float HipsHeight { get; internal set; }
 
         /// <summary>Height of the soles at rest, in the rig's local space: where the ground is.</summary>
         public float GroundY { get; private set; }
@@ -167,6 +174,12 @@ namespace Zeldexile.Characters
 
         public static CharacterRig Build(Transform parent, RigStyle style)
         {
+            if (!string.IsNullOrEmpty(style.SkinnedModel))
+            {
+                var skinned = SkinnedHero.Build(parent, style);
+                if (skinned != null) return skinned;
+            }
+
             if (!string.IsNullOrEmpty(style.Model))
             {
                 var fromModel = FromModel(parent, style);
@@ -240,7 +253,8 @@ namespace Zeldexile.Characters
         /// At rest (all bones at identity) the lowest drawn point is the ground. Contact points then sit on the
         /// sole under the heel, the arch, the ball and the toe tip, and on the front of the knee.
         /// </summary>
-        private void FindContacts()
+        /// <param name="groundY">The sole height when the caller measured it (skinned bounds are loose).</param>
+        internal void FindContacts(float? groundY = null)
         {
             Contacts.Clear();
             var lowest = float.MaxValue;
@@ -250,7 +264,7 @@ namespace Zeldexile.Characters
                 lowest = Mathf.Min(lowest, transform.InverseTransformPoint(r.bounds.min).y);
             }
 
-            GroundY = lowest == float.MaxValue ? 0f : lowest;
+            GroundY = groundY ?? (lowest == float.MaxValue ? 0f : lowest);
             foreach (var (knee, ankle, toes) in new[] { (KneeL, AnkleL, ToesL), (KneeR, AnkleR, ToesR) })
             {
                 var foot = ankle != null ? ankle : knee;
@@ -304,7 +318,7 @@ namespace Zeldexile.Characters
             part == GearPart.SwordHand || part == GearPart.ShieldHand || part == GearPart.BowHand;
 
         /// <summary>Gear held in the hands starts hidden; HeroPresenter shows it when drawn, raised or aimed.</summary>
-        private static void HideHandGear(CharacterRig rig)
+        internal static void HideHandGear(CharacterRig rig)
         {
             foreach (var r in rig.GetComponentsInChildren<Renderer>(true))
                 if (IsHandGear(Classify(r.name)))

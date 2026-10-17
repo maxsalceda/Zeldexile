@@ -65,6 +65,11 @@ Zeldexile/Assets/Zeldexile/
 - **Modelos**: gerados no Blender 3.6 por `Tools/Blender/build_models.py` (herói, Cascudo, árvores, rochas,
   baú, pilar de cobre, muros, portão, teto, grama). Os `.blend` ficam em `Art/Blender` para edição manual.
   Cada malha se chama `Junta~Peça@slot`: o Unity remonta as juntas e pinta pela cor do slot.
+- **Herói do Meshy**: o herói em jogo é `Resources/Models/Skinned/heroi_meshy.fbx` (esqueleto Mixamo, textura
+  `heroi_meshy_cor.png`, shader `Zeldexile/ToonOutlineTextured`). `SkinnedHero` conserta as bindposes do FBX do
+  Meshy, endireita o esqueleto e copia a pose procedural do `CharacterAnimator` para os ossos; espada, escudo e
+  arco vêm do `heroi_anime`. Para trocar o herói, substitua os dois arquivos; para voltar ao modelo do Blender,
+  esvazie `RigStyle.Hero.SkinnedModel`.
 
 Para regenerar os modelos:
 ```

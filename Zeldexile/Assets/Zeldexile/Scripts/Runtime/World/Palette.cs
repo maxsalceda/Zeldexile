@@ -34,6 +34,7 @@ namespace Zeldexile.World
         private static readonly Dictionary<Color, Material> Opaque = new Dictionary<Color, Material>();
         private static readonly Dictionary<Color, Material> Transparent = new Dictionary<Color, Material>();
         private static readonly Dictionary<Color, Material> Outline = new Dictionary<Color, Material>();
+        private static readonly Dictionary<(Color, bool, bool, bool), Material> SmoothCache = new Dictionary<(Color, bool, bool, bool), Material>();
 
         public static Color ForElement(Element element)
         {
@@ -115,6 +116,23 @@ namespace Zeldexile.World
             if (Outline.TryGetValue(color, out var m) && m != null) return m;
             m = new Material(FindShader("Zeldexile/ToonOutline", "Standard")) { color = color };
             Outline[color] = m;
+            return m;
+        }
+
+        /// <summary>
+        /// Anime toon for smooth models (Zeldexile/ToonOutlineSmooth): hard two-tone band with a bluish shadow and
+        /// a contour grown along the vertex normal. Without outline for flat details; unlit for the eyes; a face
+        /// stays lit unless the light comes from behind (its band sits far on the dark side).
+        /// </summary>
+        public static Material SmoothToon(Color color, bool outline, bool unlit = false, bool face = false)
+        {
+            var key = (color, outline, unlit, face);
+            if (SmoothCache.TryGetValue(key, out var m) && m != null) return m;
+            m = new Material(FindShader("Zeldexile/ToonOutlineSmooth", "Zeldexile/ToonOutline")) { color = color };
+            if (!outline) m.SetFloat("_OutlineWidth", 0f);
+            if (unlit) m.SetFloat("_Unlit", 1f);
+            if (face) m.SetFloat("_BandOffset", -0.55f);
+            SmoothCache[key] = m;
             return m;
         }
 

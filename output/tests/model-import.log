@@ -1,0 +1,612 @@
+VBCSCompilerPreWarmer: watching VBCSCompiler (PID 54212)
+VBCSCompilerPreWarmer: pre-warm launched (dotnet PID 59164)
+VBCSCompiler prewarm took 13.41 ms
+[Licensing::Module] Trying to connect to existing licensing client channel...
+Built from '6000.6/staging' branch; Version is '6000.6.4f1 (12bfff696524) revision 1228799'; Using compiler version '194234433'; Build Type 'Release'
+[Licensing::IpcConnector] Channel LicenseClient-BillyFall doesn't exist
+OS: 'Windows 11  (10.0.26200) Core' Language: 'pt' Physical Memory: 65219 MB
+BatchMode: 1, IsHumanControllingUs: 0, StartBugReporterOnCrash: 0, Is64bit: 1
+System  architecture: x64
+Process architecture: x64
+Date: 2026-10-17T08:23:44Z
+[Licensing::Module] Successfully launched the LicensingClient (PId: 46540)
+Starting IPC server.
+Waiting for clients to connect on \\.\pipe\Unity-LicenseClient-BillyFall, press Ctrl-C to exit.
+[Licensing::IpcConnector] Successfully connected to: "LicenseClient-BillyFall" at "2026-10-17T08:23:45.0661919Z"
+[Licensing::Client] Code 10 while verifying Licensing Client signature (process Id: 46540, path: "C:/Program Files/Unity/Hub/Editor/6000.6.4f1/Editor/Data/Resources/Licensing/Client/Unity.Licensing.Client.exe")
+[Licensing::Module] LicensingClient has failed validation; ignoring
+[Licensing::Client] Handshaking with LicensingClient:
+  Version:                 1.18.3+d7ffd15
+  Session Id:              a67accc08a7940479034cbeaecda7062
+  Correlation Id:          8c47f6e2d7604feacf7c45ab418dc729
+  External correlation Id: 9125882071739531131
+  Machine Id:              kpEQ7mwwijY3OqQc6knM5LYECTg=
+[Licensing::Module] Successfully connected to LicensingClient on channel: "LicenseClient-BillyFall" (connect: 0.25s, validation: 0.03s, handshake: 0.04s)
+[Licensing::IpcConnector] Successfully connected to: "LicenseClient-BillyFall-notifications" at "2026-10-17T08:23:45.1363403Z"
+[Licensing::Module] Connected to LicensingClient (PId: 46540, launch time: 0.00, total connection time: 0.32s)
+[Licensing::Module] Error: Access token is unavailable; failed to update
+[Licensing::Client] Successfully resolved entitlement details
+[Licensing::Module] License group:
+  Id: 4674262823310-UnityPersXXXX
+  Product: Unity Personal
+  Type: Assigned
+  Expiration: Unlimited
+[Licensing::Client] Successfully updated license, isAsync: True, time: 0.01
+[Licensing::Module] Licensing Background thread has ended after 0.33s
+
+COMMAND LINE ARGUMENTS:
+C:\Program Files\Unity\Hub\Editor\6000.6.4f1\Editor\Unity.exe
+-batchmode
+-projectPath
+D:/19 - Zeldexile/Zeldexile
+-runTests
+-testPlatform
+PlayMode
+-testFilter
+Zeldexile.Tests.ModelImportTests;Zeldexile.Tests.VisualPreviewTests
+-testResults
+D:/19 - Zeldexile/output/tests/model-import.xml
+-logFile
+D:/19 - Zeldexile/output/tests/model-import.log
+Successfully changed project path to: D:/19 - Zeldexile/Zeldexile
+D:/19 - Zeldexile/Zeldexile
+[UnityMemory] Configuration Parameters - Can be set up in boot.config
+    "memorysetup-temp-allocator-size-gi-baking-worker=262144"
+    "memorysetup-temp-allocator-size-gi-baking-worker=262144"
+    "memorysetup-temp-allocator-size-gi-baking-worker=262144"
+    "memorysetup-temp-allocator-size-gi-baking-worker=262144"
+    "memorysetup-temp-allocator-size-gi-baking-worker=262144"
+    "memorysetup-temp-allocator-size-nav-mesh-worker=65536"
+    "memorysetup-temp-allocator-size-audio-worker=65536"
+    "memorysetup-temp-allocator-size-cloud-worker=32768"
+    "memorysetup-temp-allocator-size-gfx=262144"
+    "memorysetup-remapper-allocator-initial-capacity=32768"
+    "memorysetup-temp-allocator-size-preload-manager=33554432"
+    "memorysetup-allocator-temp-initial-block-size-main=262144"
+    "memorysetup-allocator-temp-initial-block-size-worker=262144"
+    "memorysetup-temp-allocator-size-job-worker=262144"
+    "memorysetup-temp-allocator-size-background-worker=32768"
+    "memorysetup-bucket-allocator-granularity=16"
+    "memorysetup-bucket-allocator-bucket-count=8"
+    "memorysetup-bucket-allocator-block-size=33554432"
+    "memorysetup-bucket-allocator-block-count=8"
+    "memorysetup-main-allocator-block-size=16777216"
+    "memorysetup-thread-allocator-block-size=16777216"
+    "memorysetup-main-allocator-mimalloc-enabled=1"
+    "memorysetup-gfx-main-allocator-block-size=16777216"
+    "memorysetup-gfx-thread-allocator-block-size=16777216"
+    "memorysetup-cache-allocator-block-size=4194304"
+    "memorysetup-typetree-allocator-block-size=2097152"
+    "memorysetup-profiler-bucket-allocator-granularity=16"
+    "memorysetup-profiler-bucket-allocator-bucket-count=8"
+    "memorysetup-profiler-bucket-allocator-block-size=33554432"
+    "memorysetup-profiler-bucket-allocator-block-count=8"
+    "memorysetup-profiler-allocator-block-size=16777216"
+    "memorysetup-profiler-editor-allocator-block-size=1048576"
+    "memorysetup-temp-allocator-size-main=16777216"
+    "memorysetup-job-temp-allocator-block-size=2097152"
+    "memorysetup-job-temp-allocator-block-size-background=1048576"
+    "memorysetup-job-temp-allocator-reduction-small-platforms=262144"
+Logging is directed to a specific file, skipping project log.
+Player connection [38340]  Target information:
+
+Player connection [38340]  * "[IP] 54.232.189.113 [Port] 55504 [Flags] 2 [Guid] 2736333802 [EditorId] 2736333802 [Version] 1048832 [Id] WindowsEditor(7,DESKTOP-RK6AQAI) [Debug] 1 [PackageName] WindowsEditor [ProjectName] Editor" 
+
+Player connection [38340]  * "[IP] 192.168.15.4 [Port] 55504 [Flags] 2 [Guid] 2736333802 [EditorId] 2736333802 [Version] 1048832 [Id] WindowsEditor(7,DESKTOP-RK6AQAI) [Debug] 1 [PackageName] WindowsEditor [ProjectName] Editor" 
+
+Player connection [38340] Host joined multi-casting on [225.0.0.222:54997]...
+Player connection [38340] Host joined alternative multi-casting on [225.0.0.222:34997]...
+Input System module state changed to: Initialized.
+[Physics::Module] Initialized fallback backend.
+[Physics::Module] Id: 0xdecafbad
+Initialising UDS system complete:
+  - System type: Client
+  - Resource namespace: dc837b33d2790cae765c355ce8db5f1f
+  - Shared memory size: 1073741824
+  - Command buffer id: 1052576
+  - Command buffer size: 8192
+  - Hashmap size: 4194304
+  - Service connected: false
+[Package Manager] Connected to IPC stream "Upm-46984" after 0.2 seconds.
+[Licensing::Client] Successfully resolved entitlement details
+Library Redirect Path: Library/
+Launching Unity Data Store - C:/Program Files/Unity/Hub/Editor/6000.6.4f1/Editor/Data/Tools/Unity.DataStore.exe 
+Unity Data Store artifact dir = Library/DataStore, working dir = D:/19 - Zeldexile/ZeldexileUnity Data Store running and initialised
+[Physics::Module] Selected backend (deferred post-plugins).
+[Physics::Module] Name: PhysX
+[Physics::Module] Id: 0xf2b8ea05
+[Physics::Module] SDK Version: 4.1.2
+[Physics::Module] Integration Version: 1.0.0
+[Physics::Module] Threading Mode: Multi-Threaded
+Initialize engine version: 6000.6.4f1 (12bfff696524)
+[EntityIdStore] init: VM path (explicit commit), pageSize=4096, blockCount=1048576, entitiesPerBlock=256, slots reserved=4294967296 bytes
+[Subsystems] Discovering subsystems at path C:/Program Files/Unity/Hub/Editor/6000.6.4f1/Editor/Data/Resources/UnitySubsystems
+[Subsystems] Discovering subsystems at path D:/19 - Zeldexile/Zeldexile/Assets
+GfxDevice: creating device client; kGfxThreadingModeNonThreaded
+d3d12: failed to query info queue interface (0x80004002).
+Direct3D:
+    Version:         Direct3D 12 [level 12.2]
+    Renderer:        NVIDIA GeForce RTX 4070 Ti (ID=0x2782)
+    Vendor:          NVIDIA
+    VRAM:            11994 MB
+    App VRAM Budget: 11226 MB
+    Driver:          32.0.16.1088
+Initialize mono
+Mono path[0] = 'C:/Program Files/Unity/Hub/Editor/6000.6.4f1/Editor/Data/Managed'
+Mono path[1] = 'C:/Program Files/Unity/Hub/Editor/6000.6.4f1/Editor/Data/BCLExtensions/runtime/netstandard2.1'
+Mono path[2] = 'C:/Program Files/Unity/Hub/Editor/6000.6.4f1/Editor/Data/MonoBleedingEdge/lib/mono/unityjit-win32'
+Mono config path = 'C:/Program Files/Unity/Hub/Editor/6000.6.4f1/Editor/Data/MonoBleedingEdge/etc'
+Using monoOptions --debugger-agent=transport=dt_socket,embedding=1,server=y,suspend=n,address=127.0.0.1:56984
+CodeReloadManager initialized
+ImportWorker Server TCP listen port: 0
+AcceleratorClientConnectionCallback - disconnected - :0
+Begin MonoManager ReloadAssembly
+Registering precompiled unity dll's ...
+Register platform support module: C:/Program Files/Unity/Hub/Editor/6000.6.4f1/Editor/Data/PlaybackEngines/WebGLSupport/UnityEditor.WebGL.Extensions.dll
+Register platform support module: C:/Program Files/Unity/Hub/Editor/6000.6.4f1/Editor/Data/PlaybackEngines/WindowsStandaloneSupport/UnityEditor.WindowsStandalone.Extensions.dll
+Registered in 0.001808 seconds.
+Native extension for WindowsStandalone target not found
+Native extension for WebGL target not found
+Package Manager log level set to [2]
+ScheduleIndexationOnStartup MainProcess:False IndexOnStartup:True
+Scripting: successfully reloaded assembly
+- Finished resetting the current domain, in  0.540 seconds
+Domain Reload Profiling: 983ms
+	BeginReloadAssembly (127ms)
+		CreateAndSetChildDomain (25ms)
+	RebuildCommonClasses (4ms)
+	RebuildNativeTypeToScriptingClass (12ms)
+	initialDomainReloadingComplete (54ms)
+	LoadAllAssembliesAndSetupDomain (246ms)
+		LoadAssemblies (99ms)
+		TypeCache.Refresh (165ms)
+			TypeCache.ScanAssembly (154ms)
+		AnalyzeDomain (1ms)
+	FinalizeReload (541ms)
+		SetupLoadedEditorAssemblies (0ms)
+			InitializePlatformSupportModulesInManaged (3ms)
+			BeforeProcessingInitializeOnLoad (80ms)
+			ProcessInitializeOnLoadAttributes (110ms)
+			ProcessInitializeOnLoadMethodAttributes (160ms)
+[Licensing::Client] Successfully resolved entitlement details
+Application.AssetDatabase Initial Refresh Start
+[Package Manager] Restoring resolved packages state from cache
+[Licensing::Client] Successfully resolved entitlement details
+[Package Manager] Registered 45 packages:
+  Packages from [https://packages.unity.com]:
+    com.unity.inputsystem@1.20.0 (location: D:\19 - Zeldexile\Zeldexile\Library\PackageCache\com.unity.inputsystem@7a4e1a2a8194)
+    com.unity.postprocessing@3.5.4 (location: D:\19 - Zeldexile\Zeldexile\Library\PackageCache\com.unity.postprocessing@141166b789e3)
+    com.unity.ide.rider@3.0.38 (location: D:\19 - Zeldexile\Zeldexile\Library\PackageCache\com.unity.ide.rider@1f60b3138684)
+    com.unity.ide.visualstudio@2.0.26 (location: D:\19 - Zeldexile\Zeldexile\Library\PackageCache\com.unity.ide.visualstudio@a99d56dec63f)
+  Built-in packages:
+    com.unity.test-framework@1.8.0 (location: D:\19 - Zeldexile\Zeldexile\Library\PackageCache\com.unity.test-framework@80f691d4262b)
+    com.unity.ugui@2.6.0 (location: D:\19 - Zeldexile\Zeldexile\Library\PackageCache\com.unity.ugui@0727b404f3a0)
+    com.unity.modules.accessibility@1.0.0 (location: D:\19 - Zeldexile\Zeldexile\Library\PackageCache\com.unity.modules.accessibility)
+    com.unity.modules.adaptiveperformance@1.0.0 (location: D:\19 - Zeldexile\Zeldexile\Library\PackageCache\com.unity.modules.adaptiveperformance)
+    com.unity.modules.ai@1.0.0 (location: D:\19 - Zeldexile\Zeldexile\Library\PackageCache\com.unity.modules.ai)
+    com.unity.modules.androidjni@1.0.0 (location: D:\19 - Zeldexile\Zeldexile\Library\PackageCache\com.unity.modules.androidjni)
+    com.unity.modules.animation@1.0.0 (location: D:\19 - Zeldexile\Zeldexile\Library\PackageCache\com.unity.modules.animation)
+    com.unity.modules.assetbundle@1.0.0 (location: D:\19 - Zeldexile\Zeldexile\Library\PackageCache\com.unity.modules.assetbundle)
+    com.unity.modules.audio@1.0.0 (location: D:\19 - Zeldexile\Zeldexile\Library\PackageCache\com.unity.modules.audio)
+    com.unity.modules.cloth@1.0.0 (location: D:\19 - Zeldexile\Zeldexile\Library\PackageCache\com.unity.modules.cloth)
+    com.unity.modules.director@1.0.0 (location: D:\19 - Zeldexile\Zeldexile\Library\PackageCache\com.unity.modules.director)
+    com.unity.modules.imageconversion@1.0.0 (location: D:\19 - Zeldexile\Zeldexile\Library\PackageCache\com.unity.modules.imageconversion)
+    com.unity.modules.imgui@1.0.0 (location: D:\19 - Zeldexile\Zeldexile\Library\PackageCache\com.unity.modules.imgui)
+    com.unity.modules.jsonserialize@1.0.0 (location: D:\19 - Zeldexile\Zeldexile\Library\PackageCache\com.unity.modules.jsonserialize)
+    com.unity.modules.particlesystem@1.0.0 (location: D:\19 - Zeldexile\Zeldexile\Library\PackageCache\com.unity.modules.particlesystem)
+    com.unity.modules.physics@1.0.0 (location: D:\19 - Zeldexile\Zeldexile\Library\PackageCache\com.unity.modules.physics)
+    com.unity.modules.physics2d@1.0.0 (location: D:\19 - Zeldexile\Zeldexile\Library\PackageCache\com.unity.modules.physics2d)
+    com.unity.modules.physicscore2d@1.0.0 (location: D:\19 - Zeldexile\Zeldexile\Library\PackageCache\com.unity.modules.physicscore2d)
+    com.unity.modules.screencapture@1.0.0 (location: D:\19 - Zeldexile\Zeldexile\Library\PackageCache\com.unity.modules.screencapture)
+    com.unity.modules.terrain@1.0.0 (location: D:\19 - Zeldexile\Zeldexile\Library\PackageCache\com.unity.modules.terrain)
+    com.unity.modules.terrainphysics@1.0.0 (location: D:\19 - Zeldexile\Zeldexile\Library\PackageCache\com.unity.modules.terrainphysics)
+    com.unity.modules.tetgen@1.0.0 (location: D:\19 - Zeldexile\Zeldexile\Library\PackageCache\com.unity.modules.tetgen)
+    com.unity.modules.tilemap@1.0.0 (location: D:\19 - Zeldexile\Zeldexile\Library\PackageCache\com.unity.modules.tilemap)
+    com.unity.modules.timelinefoundation@1.0.0 (location: D:\19 - Zeldexile\Zeldexile\Library\PackageCache\com.unity.modules.timelinefoundation)
+    com.unity.modules.ui@1.0.0 (location: D:\19 - Zeldexile\Zeldexile\Library\PackageCache\com.unity.modules.ui)
+    com.unity.modules.uielements@1.0.0 (location: D:\19 - Zeldexile\Zeldexile\Library\PackageCache\com.unity.modules.uielements)
+    com.unity.modules.umbra@1.0.0 (location: D:\19 - Zeldexile\Zeldexile\Library\PackageCache\com.unity.modules.umbra)
+    com.unity.modules.unityanalytics@1.0.0 (location: D:\19 - Zeldexile\Zeldexile\Library\PackageCache\com.unity.modules.unityanalytics)
+    com.unity.modules.unitywebrequest@1.0.0 (location: D:\19 - Zeldexile\Zeldexile\Library\PackageCache\com.unity.modules.unitywebrequest)
+    com.unity.modules.unitywebrequestassetbundle@1.0.0 (location: D:\19 - Zeldexile\Zeldexile\Library\PackageCache\com.unity.modules.unitywebrequestassetbundle)
+    com.unity.modules.unitywebrequestaudio@1.0.0 (location: D:\19 - Zeldexile\Zeldexile\Library\PackageCache\com.unity.modules.unitywebrequestaudio)
+    com.unity.modules.unitywebrequesttexture@1.0.0 (location: D:\19 - Zeldexile\Zeldexile\Library\PackageCache\com.unity.modules.unitywebrequesttexture)
+    com.unity.modules.unitywebrequestwww@1.0.0 (location: D:\19 - Zeldexile\Zeldexile\Library\PackageCache\com.unity.modules.unitywebrequestwww)
+    com.unity.modules.vectorgraphics@1.0.0 (location: D:\19 - Zeldexile\Zeldexile\Library\PackageCache\com.unity.modules.vectorgraphics)
+    com.unity.modules.vehicles@1.0.0 (location: D:\19 - Zeldexile\Zeldexile\Library\PackageCache\com.unity.modules.vehicles)
+    com.unity.modules.video@1.0.0 (location: D:\19 - Zeldexile\Zeldexile\Library\PackageCache\com.unity.modules.video)
+    com.unity.modules.wind@1.0.0 (location: D:\19 - Zeldexile\Zeldexile\Library\PackageCache\com.unity.modules.wind)
+    com.unity.modules.xr@1.0.0 (location: D:\19 - Zeldexile\Zeldexile\Library\PackageCache\com.unity.modules.xr)
+    com.unity.modules.subsystems@1.0.0 (location: D:\19 - Zeldexile\Zeldexile\Library\PackageCache\com.unity.modules.subsystems)
+    com.unity.modules.hierarchycore@1.0.0 (location: D:\19 - Zeldexile\Zeldexile\Library\PackageCache\com.unity.modules.hierarchycore)
+    com.unity.ext.nunit@2.1.0 (location: D:\19 - Zeldexile\Zeldexile\Library\PackageCache\com.unity.ext.nunit@0198eae3b53e)
+[Subsystems] No new subsystems found in resolved package list.
+[Package Manager] Done registering packages in 0.01 seconds
+Starting: C:\Program Files\Unity\Hub\Editor\6000.6.4f1\Editor\Data\Tools\BuildPipeline\bee_backend.exe --ipc --defer-dag-verification --dagfile="Library/Bee/1900b0aE.dag" --continue-on-failure --profile="Library/Bee/backend1.traceevents" ScriptAssemblies
+WorkingDir: D:/19 - Zeldexile/Zeldexile
+DisplayProgressbar: Compiling Scripts
+ExitCode: 0 Duration: 0s168ms
+[326/387    0s] ILPP-Configuration Library/ilpp-configuration.nevergeneratedoutput
+*** Tundra build success (0.12 seconds), 1 items updated, 387 evaluated
+AssetDatabase: script compilation time: 0.461541s
+Begin MonoManager ReloadAssembly
+Native extension for WindowsStandalone target not found
+Native extension for WebGL target not found
+ScheduleIndexationOnStartup MainProcess:True IndexOnStartup:True
+Scripting: successfully reloaded assembly
+- Finished resetting the current domain, in  0.433 seconds
+Domain Reload Profiling: 1006ms
+	BeginReloadAssembly (300ms)
+		DisableScriptedObjects (21ms)
+		CreateAndSetChildDomain (147ms)
+	RebuildCommonClasses (7ms)
+	RebuildNativeTypeToScriptingClass (12ms)
+	initialDomainReloadingComplete (38ms)
+	LoadAllAssembliesAndSetupDomain (216ms)
+		LoadAssemblies (184ms)
+		TypeCache.Refresh (24ms)
+			TypeCache.ScanAssembly (19ms)
+		AnalyzeDomain (12ms)
+			BuildScriptInfoCaches (9ms)
+	FinalizeReload (434ms)
+		SetupLoadedEditorAssemblies (0ms)
+			BeforeProcessingInitializeOnLoad (79ms)
+			ProcessInitializeOnLoadAttributes (103ms)
+			ProcessInitializeOnLoadMethodAttributes (42ms)
+			AfterProcessingInitializeOnLoad (7ms)
+		AwakeInstancesAfterBackupRestoration (32ms)
+Starting new worker id: 0 with log in D:/19 - Zeldexile/Zeldexile/Logs/AssetImportWorkerHW0.log
+Importing 'GUID: 72bdcbdf72c043c41bdecfcf03713793 - Path: Assets/Zeldexile/Resources/Models/Characters/heroi_npr.fbx' with importer (FBXImporter)
+Imported 'GUID: 72bdcbdf72c043c41bdecfcf03713793' -> (Import Result ID: '6a549e70b7f4c4a390c90333a1f7f042') in 0.077 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=a985a7405d0a9bddaed1f03250cbc9bb DependenciesID=9a3840e5114c6313f6c37d9eb5f89f94 StaticDependenciesID=2d322f4beca352ecafaf3feda39d2cd2 
+
+Asset Pipeline Refresh (id=81d10310288e1ff449649ca63ed16430): Total: 1.880 seconds - Initiated by InitialRefreshV2(ForceSynchronousImport)
+	(Values over 0.05ms)
+	Summary:
+		Imports: total=1 (actual=1, local cache=0, cache server=0)
+		Asset DB Process Time: managed=5 ms, native=702 ms
+		Asset DB Callback time: managed=66 ms, native=17 ms
+		Scripting: domain reloads=1, domain reload time=609 ms, compile time=463 ms, other=15 ms
+		Project Asset Count: scripts=414, non-scripts=539
+		Asset File Changes: new=0, changed=1, moved=0, deleted=0
+		Scan Filter Count: 0
+	InvokePackagesCallback: 16.786ms
+	ApplyChangesToAssetFolders: 0.388ms
+	Scan: 64.784ms
+	Collect global state as custom dependencies: 5.453ms
+	OnSourceAssetsModified: 0.471ms
+	CategorizeScriptCompilationAssets: 5.916ms
+	ProcessAssetsWithTransientArtifactChanges: 13.627ms
+	CategorizeAssets: 6.165ms
+	CompileScripts: 463.346ms
+	ImportOutOfDateAssets: 524.900ms (434.656ms without children)
+		ImportManagerImport: 79.766ms (2.132ms without children)
+		UnloadImportedAssets: 1.599ms
+		EnsureUptoDateAssetsAreRegisteredWithGuidPM: 0.097ms
+		ImportSchedulerStart: 8.774ms
+	PostProcessAllAssets: 66.808ms
+		VCAutoAddAssetPostprocess 0.590ms
+		XRBuildSystem.XRAssetImported 0.060ms
+		MonoPostProcessAllAssets: 65.229ms
+			AssetPostprocessor.OnPostprocessAllAssets 26.670ms
+			StyleCatalogPostProcessor.OnPostprocessAllAssets 9.399ms
+			WindowAssetPostprocessingWatcher.OnPostprocessAllAssets 6.282ms
+			BuilderAssetPostprocessor.OnPostprocessAllAssets 6.072ms
+			SyncVS.PostprocessSyncProject 2.314ms
+			AssetChangedListener.OnPostprocessAllAssets 1.366ms
+			RetainedModeAssetPostprocessor.OnPostprocessAllAssets 0.992ms
+			EditModeScopePostprocessor.OnPostprocessAllAssets 0.659ms
+			ArtifactBrowserPostProcessor.OnPostprocessAllAssets 0.630ms
+			SpeedTree9Postprocessor.OnPostprocessAllAssets 0.563ms
+			TextAssetPostProcessor.OnPostprocessAllAssets 0.432ms
+			AudioMixerPostprocessor.OnPostprocessAllAssets 0.431ms
+			CubeLutAssetImporter.OnPostprocessAllAssets 0.337ms
+			InputActionAssetPostprocessor.OnPostprocessAllAssets 0.259ms
+			ReferencedClipsPostProcessor.OnPostprocessAllAssets 0.220ms
+			TMPro_TexturePostProcessor.OnPostprocessAllAssets 0.193ms
+			InputActionJsonNameModifierAssetProcessor.OnPostprocessAllAssets 0.193ms
+			AssetEvents.OnPostprocessAllAssets 0.184ms
+			TerrainToolbarOverlayPostProcessor.OnPostprocessAllAssets 0.151ms
+			AssetDatabaseCallbacks.OnPostprocessAllAssets 0.137ms
+			ProjectSettingsPostprocessor.OnPostprocessAllAssets 0.129ms
+			SpeedTreePostProcessor.OnPostprocessAllAssets 0.116ms
+			AudioContainerPostProcessor.OnPostprocessAllAssets 0.104ms
+			ConfigAssetsTracker.OnPostprocessAllAssets 0.097ms
+			ThemePostprocessor.OnPostprocessAllAssets 0.091ms
+			ScenarioDriftAssetsTracker.OnPostprocessAllAssets 0.090ms
+			RenderPipelineGlobalSettingsPostprocessor.OnPostprocessAllAssets 0.066ms
+	PostAssetChangesProfiler: 1.277ms
+	UnloadStreamsBegin: 1.040ms
+	GenerateScriptTypeHashes: 0.798ms
+	GenerateScriptTypeSerializationHashes: 1.734ms
+	Untracked: 685.538ms
+
+Application.AssetDatabase Initial Refresh End
+Launched and connected shader compiler UnityShaderCompiler.exe after 0.01 seconds
+Scanning for USB devices : 10.095ms
+Initializing Unity extensions:
+[MODES] ModeService[none].Initialize
+[MODES] ModeService[none].LoadModes
+[MODES] Loading mode Default (0) for mode-current-id-Zeldexile
+Unloading 39 Unused Serialized files (Serialized files now loaded: 0)
+Unloading 1525 unused Assets / (5.0 MB). Loaded Objects now: 2242.
+Memory consumption went from 257.4 MB to 252.4 MB.
+Total: 5.335500 ms (FindLiveObjects: 0.169900 ms CreateObjectMapping: 0.042500 ms MarkObjects: 3.886400 ms  DeleteObjects: 1.115300 ms)
+
+[Project] Loading completed in 4.248 seconds
+	Project init time: 				3.778 seconds
+		Template init time: 		0.000 seconds
+		Package Manager init time: 		0.192 seconds
+		Asset Database init time: 		0.153 seconds
+		Global illumination init time: 	0.002 seconds
+		Assemblies load time: 			1.022 seconds
+		Unity extensions init time: 	0.003 seconds
+		Asset Database refresh time: 	1.880 seconds
+	Scene opening time: 			0.067 seconds
+##utp:{"type":"ProjectInfo","version":2,"phase":"Immediate","time":1792225429044,"processId":46984,"projectLoad":4.2481374,"projectInit":3.7775082,"templateInit":0.0,"packageManagerInit":0.192225,"assetDatabaseInit":0.1530751,"globalIlluminationInit":0.002408,"assembliesLoad":1.0217058,"unityExtensionsInit":0.0029172,"assetDatabaseRefresh":1.880401,"sceneOpening":0.0672961}
+##utp:{"type":"EditorInfo","version":2,"phase":"Immediate","time":1792225429044,"processId":46984,"editorVersion":"6000.6.4f1 (12bfff696524)","branch":"6000.6/staging","buildType":"Release","platform":"Windows"}
+[Licensing::Client] Successfully resolved entitlement details
+Running tests for ExecutionSettings with details:
+targetPlatform = 
+playerHeartbeatTimeout = 600
+filters[0] = 
+   Filter with settings:
+   testMode = PlayMode
+   targetPlatform = 
+   testNames = null
+   groupNames = Zeldexile.Tests.ModelImportTests, Zeldexile.Tests.VisualPreviewTests
+   categoryNames = null
+   assemblyNames = null
+ignoreTests = {}
+featureFlags = null
+
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+UnityEditor.TestTools.TestRunner.CommandLineTest.Executer:InitializeAndExecuteRun (string[]) (at ./Library/PackageCache/com.unity.test-framework@80f691d4262b/UnityEditor.TestRunner/CommandLineTest/Executer.cs:53)
+UnityEditor.TestTools.TestRunner.CommandLineTest.TestStarter:InitializeAndExecuteRun () (at ./Library/PackageCache/com.unity.test-framework@80f691d4262b/UnityEditor.TestRunner/CommandLineTest/TestStarter.cs:64)
+UnityEditor.EditorApplication:Internal_CallUpdateFunctions ()
+
+(Filename: ./Library/PackageCache/com.unity.test-framework@80f691d4262b/UnityEditor.TestRunner/CommandLineTest/Executer.cs Line: 53)
+
+Start Indexing on Editor startup
+[Indexing] Starting Initial Indexing for Assets
+[UnityConnectServicesConfig] config is NOT valid, switching to default
+Created GICache directory at C:/Users/BillyFall/AppData/LocalLow/Unity/Caches/GiCache. Took: 0.019s, timestamps: [4.250 - 4.269]
+Unloading 2 Unused Serialized files (Serialized files now loaded: 0)
+Unloading 0 unused Assets / (Unknown). Loaded Objects now: 2392.
+Memory consumption went from 260.5 MB to 260.5 MB.
+Total: 4.409900 ms (FindLiveObjects: 0.178700 ms CreateObjectMapping: 0.023700 ms MarkObjects: 4.091300 ms  DeleteObjects: 0.004300 ms)
+
+Importing 'GUID: efc384b81d7f1f64b9d8d40e6f230493 - Path: Assets/InitTestScenebbb2c003-d0c4-4e5a-9f0a-0c890b6ab0ba.unity' with importer (DefaultImporter)
+Imported 'GUID: efc384b81d7f1f64b9d8d40e6f230493' -> (Import Result ID: '5bf7433639a4c4c810abb54b416a24cf') in 0.001 seconds [static dependencies only]. Details - ImportResultOutputID=81fc7f797e981322514f740764520e3d DependenciesID=00cfe2c0c49c33e585ba2913cbc24691 StaticDependenciesID=09c2d11062ca89e405e7d025bc809f8d 
+Asset Pipeline Refresh (id=9cf87482b1698804392778fdaeb9c627): Total: 0.021 seconds - Initiated by StopAssetImportingV2(NoUpdateAssetOptions)
+Reloading assemblies for play mode.
+Reloading assemblies after forced synchronous recompile.
+Begin MonoManager ReloadAssembly
+Native extension for WindowsStandalone target not found
+Native extension for WebGL target not found
+Worker ready: AssetImportWorkerHW0 0
+ScheduleIndexationOnStartup MainProcess:True IndexOnStartup:True
+Scripting: successfully reloaded assembly
+- Finished resetting the current domain, in  0.560 seconds
+Domain Reload Profiling: 1008ms
+	BeginReloadAssembly (280ms)
+		DisableScriptedObjects (21ms)
+		CreateAndSetChildDomain (146ms)
+	RebuildCommonClasses (7ms)
+	RebuildNativeTypeToScriptingClass (11ms)
+	initialDomainReloadingComplete (39ms)
+	LoadAllAssembliesAndSetupDomain (111ms)
+		LoadAssemblies (87ms)
+		TypeCache.Refresh (4ms)
+		AnalyzeDomain (3ms)
+	FinalizeReload (560ms)
+		SetupLoadedEditorAssemblies (0ms)
+			BeforeProcessingInitializeOnLoad (80ms)
+			ProcessInitializeOnLoadAttributes (101ms)
+			ProcessInitializeOnLoadMethodAttributes (96ms)
+			AfterProcessingInitializeOnLoad (7ms)
+		AwakeInstancesAfterBackupRestoration (34ms)
+No restricted APIs configured; Validation skipped.
+Checking 2 assemblies for restricted APIs found 0 usage(s) in 2 ms
+
+Asset Pipeline Refresh (id=10530b9250de04044979821a23fe3fa1): Total: 1.257 seconds - Initiated by StopAssetImportingV2(ForceSynchronousImport | ForceDomainReload)
+	(Values over 0.05ms)
+	Summary:
+		Imports: total=0 (actual=0, local cache=0, cache server=0)
+		Asset DB Process Time: managed=0 ms, native=630 ms
+		Asset DB Callback time: managed=122 ms, native=22 ms
+		Scripting: domain reloads=1, domain reload time=479 ms, compile time=2 ms, other=0 ms
+		Project Asset Count: scripts=414, non-scripts=540
+		Asset File Changes: new=0, changed=0, moved=0, deleted=0
+		Scan Filter Count: 0
+	InvokePackagesCallback: 1.102ms
+	ApplyChangesToAssetFolders: 0.128ms
+	Collect global state as custom dependencies: 0.441ms
+	ProcessAssetsWithTransientArtifactChanges: 27.468ms
+	CategorizeAssets: 4.746ms
+	CompileScripts: 1.530ms
+	ImportOutOfDateAssets: 561.491ms (561.057ms without children)
+		UnloadImportedAssets: 0.199ms
+		EnsureUptoDateAssetsAreRegisteredWithGuidPM: 0.099ms
+		ImportSchedulerStart: 0.130ms
+	PostProcessAllAssets: 144.235ms
+		PostProcessCallbackCreateDeferredMaterials 4.279ms
+		ShaderAssetModifiedCallback 2.218ms
+		AssemblyValidation.PostprocessAllAssets 1.353ms
+		RaytracingShaderImportPostprocess 0.846ms
+		ComputeShaderImportPostprocess 0.821ms
+		SpeedTreeImporter.PostprocessAllAssets 0.680ms
+		LocalizationDatabase.AssetDatabasePostprocessCallback 0.402ms
+		BlockShaderImporter.PostprocessAllAssets 0.353ms
+		MonoPostProcessAllAssets: 121.848ms
+			SyncVS.PostprocessSyncProject 74.104ms
+			StyleCatalogPostProcessor.OnPostprocessAllAssets 7.012ms
+			AssetPostprocessor.OnPostprocessAllAssets 6.874ms
+			InputActionAssetPostprocessor.OnPostprocessAllAssets 4.420ms
+			InputActionJsonNameModifierAssetProcessor.OnPostprocessAllAssets 4.354ms
+			BuilderAssetPostprocessor.OnPostprocessAllAssets 3.699ms
+			WindowAssetPostprocessingWatcher.OnPostprocessAllAssets 3.579ms
+			TextAssetPostProcessor.OnPostprocessAllAssets 2.938ms
+			AssetChangedListener.OnPostprocessAllAssets 2.488ms
+			CubeLutAssetImporter.OnPostprocessAllAssets 1.586ms
+			SpeedTree9Postprocessor.OnPostprocessAllAssets 1.050ms
+			RetainedModeAssetPostprocessor.OnPostprocessAllAssets 0.928ms
+			ProjectSettingsPostprocessor.OnPostprocessAllAssets 0.612ms
+			ArtifactBrowserPostProcessor.OnPostprocessAllAssets 0.331ms
+			ReferencedClipsPostProcessor.OnPostprocessAllAssets 0.200ms
+			TMPro_TexturePostProcessor.OnPostprocessAllAssets 0.196ms
+			EditModeScopePostprocessor.OnPostprocessAllAssets 0.187ms
+			AudioMixerPostprocessor.OnPostprocessAllAssets 0.174ms
+			AssetEvents.OnPostprocessAllAssets 0.168ms
+			TerrainToolbarOverlayPostProcessor.OnPostprocessAllAssets 0.132ms
+			ThemePostprocessor.OnPostprocessAllAssets 0.132ms
+			SpeedTreePostProcessor.OnPostprocessAllAssets 0.120ms
+			AssetDatabaseCallbacks.OnPostprocessAllAssets 0.105ms
+			ConfigAssetsTracker.OnPostprocessAllAssets 0.090ms
+			RenderPipelineGlobalSettingsPostprocessor.OnPostprocessAllAssets 0.083ms
+			ScenarioDriftAssetsTracker.OnPostprocessAllAssets 0.077ms
+	PostAssetChangesProfiler: 1.113ms
+	GenerateScriptTypeHashes: 0.616ms
+	GenerateScriptTypeSerializationHashes: 1.329ms
+	Untracked: 494.687ms
+
+Loaded scene 'Temp/__Backupscenes/0.backup'
+	Deserialize:            0.621 ms
+	Integration:            20.053 ms
+	Integration of assets:  0.001 ms
+	Thread Wait Time:       0.010 ms
+	Total Operation Time:   20.685 ms
+[MODES] ModeService[none].Initialize
+[MODES] ModeService[none].LoadModes
+[Licensing::Client] Successfully resolved entitlement details
+Unloading 113 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 0.437700 ms
+Loaded scene 'Assets/Zeldexile/Scenes/Prototype.unity'
+	Deserialize:            12.700 ms
+	Integration:            398.431 ms
+	Integration of assets:  3.989 ms
+	Thread Wait Time:       0.813 ms
+	Total Operation Time:   415.932 ms
+Unloading 1301 unused Assets / (0.6 MB). Loaded Objects now: 13798.
+Memory consumption went from 300.2 MB to 299.6 MB.
+Total: 6.132800 ms (FindLiveObjects: 0.701000 ms CreateObjectMapping: 0.112100 ms MarkObjects: 4.815900 ms  DeleteObjects: 0.287900 ms)
+
+There are 2 audio listeners in the scene. Please ensure there is always exactly one audio listener in the scene.
+There are 2 audio listeners in the scene. Please ensure there is always exactly one audio listener in the scene.
+There are 2 audio listeners in the scene. Please ensure there is always exactly one audio listener in the scene.
+There are 2 audio listeners in the scene. Please ensure there is always exactly one audio listener in the scene.
+There are 2 audio listeners in the scene. Please ensure there is always exactly one audio listener in the scene.
+There are 2 audio listeners in the scene. Please ensure there is always exactly one audio listener in the scene.
+There are 2 audio listeners in the scene. Please ensure there is always exactly one audio listener in the scene.
+There are 2 audio listeners in the scene. Please ensure there is always exactly one audio listener in the scene.
+There are 2 audio listeners in the scene. Please ensure there is always exactly one audio listener in the scene.
+There are 2 audio listeners in the scene. Please ensure there is always exactly one audio listener in the scene.
+There are 2 audio listeners in the scene. Please ensure there is always exactly one audio listener in the scene.
+There are 2 audio listeners in the scene. Please ensure there is always exactly one audio listener in the scene.
+There are 2 audio listeners in the scene. Please ensure there is always exactly one audio listener in the scene.
+There are 2 audio listeners in the scene. Please ensure there is always exactly one audio listener in the scene.
+There are 2 audio listeners in the scene. Please ensure there is always exactly one audio listener in the scene.
+There are 2 audio listeners in the scene. Please ensure there is always exactly one audio listener in the scene.
+There are 2 audio listeners in the scene. Please ensure there is always exactly one audio listener in the scene.
+There are 2 audio listeners in the scene. Please ensure there is always exactly one audio listener in the scene.
+There are 2 audio listeners in the scene. Please ensure there is always exactly one audio listener in the scene.
+There are 2 audio listeners in the scene. Please ensure there is always exactly one audio listener in the scene.
+There are 2 audio listeners in the scene. Please ensure there is always exactly one audio listener in the scene.
+There are 2 audio listeners in the scene. Please ensure there is always exactly one audio listener in the scene.
+There are 2 audio listeners in the scene. Please ensure there is always exactly one audio listener in the scene.
+There are 2 audio listeners in the scene. Please ensure there is always exactly one audio listener in the scene.
+There are 2 audio listeners in the scene. Please ensure there is always exactly one audio listener in the scene.
+There are 2 audio listeners in the scene. Please ensure there is always exactly one audio listener in the scene.
+There are 2 audio listeners in the scene. Please ensure there is always exactly one audio listener in the scene.
+There are 2 audio listeners in the scene. Please ensure there is always exactly one audio listener in the scene.
+There are 2 audio listeners in the scene. Please ensure there is always exactly one audio listener in the scene.
+There are 2 audio listeners in the scene. Please ensure there is always exactly one audio listener in the scene.
+There are 2 audio listeners in the scene. Please ensure there is always exactly one audio listener in the scene.
+There are 2 audio listeners in the scene. Please ensure there is always exactly one audio listener in the scene.
+There are 2 audio listeners in the scene. Please ensure there is always exactly one audio listener in the scene.
+There are 2 audio listeners in the scene. Please ensure there is always exactly one audio listener in the scene.
+There are 2 audio listeners in the scene. Please ensure there is always exactly one audio listener in the scene.
+There are 2 audio listeners in the scene. Please ensure there is always exactly one audio listener in the scene.
+There are 2 audio listeners in the scene. Please ensure there is always exactly one audio listener in the scene.
+There are 2 audio listeners in the scene. Please ensure there is always exactly one audio listener in the scene.
+There are 2 audio listeners in the scene. Please ensure there is always exactly one audio listener in the scene.
+There are 2 audio listeners in the scene. Please ensure there is always exactly one audio listener in the scene.
+There are 2 audio listeners in the scene. Please ensure there is always exactly one audio listener in the scene.
+There are 2 audio listeners in the scene. Please ensure there is always exactly one audio listener in the scene.
+There are 2 audio listeners in the scene. Please ensure there is always exactly one audio listener in the scene.
+There are 2 audio listeners in the scene. Please ensure there is always exactly one audio listener in the scene.
+There are 2 audio listeners in the scene. Please ensure there is always exactly one audio listener in the scene.
+There are 2 audio listeners in the scene. Please ensure there is always exactly one audio listener in the scene.
+There are 2 audio listeners in the scene. Please ensure there is always exactly one audio listener in the scene.
+There are 2 audio listeners in the scene. Please ensure there is always exactly one audio listener in the scene.
+There are 2 audio listeners in the scene. Please ensure there is always exactly one audio listener in the scene.
+Saving results to: D:/19 - Zeldexile/output/tests/model-import.xml
+Unloading 12 Unused Serialized files (Serialized files now loaded: 0)
+Loaded scene 'Temp/__Backupscenes/0.backup'
+	Deserialize:            0.344 ms
+	Integration:            6.185 ms
+	Integration of assets:  0.001 ms
+	Thread Wait Time:       0.007 ms
+	Total Operation Time:   6.537 ms
+Unloading 4 unused Assets / (7.0 KB). Loaded Objects now: 5410.
+Memory consumption went from 291.6 MB to 291.6 MB.
+Total: 5.020000 ms (FindLiveObjects: 0.310500 ms CreateObjectMapping: 0.058100 ms MarkObjects: 4.461300 ms  DeleteObjects: 0.035800 ms)
+
+Unloading 1 Unused Serialized files (Serialized files now loaded: 0)
+Unloading 0 unused Assets / (0 B). Loaded Objects now: 5415.
+Memory consumption went from 291.3 MB to 291.3 MB.
+Total: 5.528600 ms (FindLiveObjects: 0.496200 ms CreateObjectMapping: 0.065600 ms MarkObjects: 4.807900 ms  DeleteObjects: 0.008200 ms)
+
+Asset Pipeline Refresh (id=2d44e9fa26c74f44d9f09cfe056b71b3): Total: 0.015 seconds - Initiated by StopAssetImportingV2(NoUpdateAssetOptions)
+DisplayProgressbar: Undo
+Test run completed. Exiting with code 0 (Ok). Run completed.
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+UnityEditor.TestTools.TestRunner.CommandLineTest.Executer:ExitApplication (UnityEditor.TestTools.TestRunner.CommandLineTest.Executer/ReturnCodes,string) (at ./Library/PackageCache/com.unity.test-framework@80f691d4262b/UnityEditor.TestRunner/CommandLineTest/Executer.cs:81)
+UnityEditor.TestTools.TestRunner.CommandLineTest.Executer:ExitIfRunIsCompleted () (at ./Library/PackageCache/com.unity.test-framework@80f691d4262b/UnityEditor.TestRunner/CommandLineTest/Executer.cs:74)
+UnityEditor.EditorApplication:Internal_CallUpdateFunctions ()
+
+(Filename: ./Library/PackageCache/com.unity.test-framework@80f691d4262b/UnityEditor.TestRunner/CommandLineTest/Executer.cs Line: 81)
+
+MonoPathRemapper: Attempts to remap: 12625; Successful remaps: 3902
+Serialized file version minimum: 23, current 23
+Importing 'GUID: 00000000000000004000000000000000 - Path: ProjectSettings/ProjectSettings.asset' with importer (LibraryAssetImporter)
+Imported 'GUID: 00000000000000004000000000000000' -> (Import Result ID: '24fb92afcff1e37cf6afe75ff10002a4') in 0.003 seconds [static dependencies only]. Details - ImportResultOutputID=054c890a8f4b6dddbea933bc5e4b7df4 DependenciesID=8f070a9da16437e04915e3b51d3fb405 StaticDependenciesID=efc12af48931284c8af08a1d979335db 
+Asset Pipeline Refresh (id=59782343afa2ea0489500c0f12b9b076): Total: 0.008 seconds - Initiated by StopAssetImportingV2(NoUpdateAssetOptions)
+[Physics::Module] Cleanup current backend.
+[Physics::Module] Id: 0xf2b8ea05
+Input System module state changed to: ShutdownInProgress.
+Input Polling Thread exited.
+Input System module state changed to: Shutdown.
+[Licensing::IpcConnector] LicenseClient-BillyFall-notifications channel disconnected successfully.
+[Licensing::IpcConnector] LicenseClient-BillyFall channel disconnected successfully.
+Shut down.
+Shut down UDS service system complete
+Lingering sessions upon destruction of worker manager
+Closing Unity without connected service process id. Process id for service is expected.
+UDS shutting down local client system
+AcceleratorClientConnectionCallback - disconnected - :0
+Cleanup mono
+CodeReloadManager destroyed
+abort_threads: Failed aborting id: 000000000000EBC8, mono_thread_manage will ignore it
+
+abort_threads: Failed aborting id: 0000000000009B5C, mono_thread_manage will ignore it
+
+abort_threads: Failed aborting id: 000000000000EBC8, mono_thread_manage will ignore it
+
+abort_threads: Failed aborting id: 0000000000009B5C, mono_thread_manage will ignore it
+
+debugger-agent: Unable to listen on 5020
+VBCSCompilerPreWarmer: requested VBCSCompiler shutdown
+Checking for leaked weakptr:
+  Found no leaked weakptrs.
+[Package Manager] Server process was shutdown
+##utp:{"type":"MemoryLeaks","version":2,"phase":"Immediate","time":1792225433511,"processId":46984,"allocatedMemory":11817268,"memoryLabels":[{"Default":226110},{"Permanent":15516},{"NewDelete":82343},{"Thread":4205560},{"Manager":51069},{"VertexData":8},{"Geometry":816},{"Texture":24},{"Shader":846927},{"Material":132},{"GfxDevice":59328},{"Animation":952},{"Audio":32},{"FreeType":8},{"FontEngine":736},{"Physics":1970},{"Physics2D":16},{"Serialization":33440},{"Input":42840},{"JobScheduler":256},{"TextLib":280},{"Mono":48},{"ScriptingNativeRuntime":1243480},{"BaseObject":49360},{"Resource":1444},{"Renderer":2504},{"Transform":4685},{"File":7389},{"WebCam":616},{"Culling":32},{"Terrain":11442},{"Wind":24},{"STL":40},{"String":328154},{"StaticString":3808},{"Utility":2676982},{"Curl":2579},{"PoolAlloc":2168},{"AI":80},{"TypeTree":17165},{"ScriptManager":18984},{"CodeReload":448},{"RuntimeInitializeOnLoadManager":64},{"Sprites":102},{"SpriteAtlas":120},{"GI":7816},{"Director":8296},{"CloudService":432},{"WebRequest":552},{"VR":49650},{"SceneManager":608},{"Video":208},{"LazyScriptCache":32},{"Camera":729},{"Secure":2377},{"SerializationCache":9256},{"APIUpdating":10320},{"Subsystems":336},{"VirtualTexturing":57888},{"StaticSafetyDebugInfo":278528},{"Analytics":464},{"Hierarchy":1188},{"UIElements":40},{"CoreStats":14456},{"Identifiers":7152},{"Gui":128},{"EditorUtility":115444},{"VersionControl":8},{"Undo":931},{"AssetDatabase":1241107},{"AssetImporter":40},{"EditorGi":328},{"UnityConnect":40465},{"Upm":1912},{"UpmDiagnostics":8},{"AssetCompliance":96},{"DrivenProperties":72},{"LocalIPC":268},{"ProfilerEditor":9746},{"CoreBusinessMetrics":3210},{"Windowing":456},{"Licensing":12576},{"AssetReference":32},{"IPCStream":32}]}

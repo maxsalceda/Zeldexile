@@ -31,6 +31,13 @@ namespace Zeldexile.Characters
         /// <summary>Slots that read better without a contour (thin or ground-hugging pieces).</summary>
         private static readonly HashSet<string> NoOutline = new HashSet<string> { "grass", "dark", "seam", "wooddark", "iris", "nose", "eyewhite" };
 
+        /// <summary>
+        /// Smooth (subdivided, smooth-normal) models: they use Palette.SmoothToon, whose contour follows the
+        /// normals, instead of the center-grown contour made for faceted parts. Eye details there are unlit.
+        /// </summary>
+        private static readonly HashSet<string> SmoothModels = new HashSet<string> { "Characters/heroi_anime" };
+        private static readonly HashSet<string> UnlitSlots = new HashSet<string> { "iris", "dark", "eyewhite" };
+
         public static bool Has(string path) => Load(path) != null;
 
         public static GameObject Load(string path)
@@ -48,11 +55,17 @@ namespace Zeldexile.Characters
             if (prefab == null) return null;
             var go = Object.Instantiate(prefab, parent, false);
             go.name = prefab.name;
+            var smooth = SmoothModels.Contains(path);
             foreach (var r in go.GetComponentsInChildren<Renderer>(true))
             {
                 var slot = SlotOf(r.name);
                 var color = colorForSlot(slot);
-                r.sharedMaterial = NoOutline.Contains(slot) ? Palette.Solid(color) : Palette.Outlined(color);
+                var outline = !NoOutline.Contains(slot);
+                // Anime faces: the head's skin stays lit (only a back light darkens it) and takes no cast shadows.
+                var face = smooth && r.name.StartsWith("Cabeça~") && (slot == "skin" || slot == "nose");
+                r.sharedMaterial = smooth ? Palette.SmoothToon(color, outline, UnlitSlots.Contains(slot), face)
+                    : outline ? Palette.Outlined(color) : Palette.Solid(color);
+                if (face) r.receiveShadows = false;
             }
 
             return go;

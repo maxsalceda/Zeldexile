@@ -17,6 +17,8 @@
 
 ## Registro inicial
 
+- **Última verificação:** 17/10/2026, aproximadamente **03:13**, America/Sao_Paulo. Leitura de fontes e evidência visual fornecida pelo usuário; sem executar a implementação.
+- **Acompanhamento automático ativo:** a cada **5 minutos**, nesta conversa. Identificador: `auditar-personagem-e-mundo-do-zeldexile`.
 - Data de referência: **17/10/2026**, fuso **America/Sao_Paulo (UTC−03:00)**.
 - Primeira leitura de fontes: aproximadamente **03:06–03:08**.
 - Projeto identificado: Unity **6000.6.4f1**, pasta `Zeldexile/`.
@@ -51,15 +53,15 @@ A grade de 25 setores de 200 m, as coordenadas indicativas e as porcentagens de 
 
 | ID | Área | Critério | Situação na primeira leitura |
 |---|---|---|---|
-| M01 | Mundo | Envelope horizontal próximo de 1.000 × 1.000 m | Base anterior: 180 × 160 unidades; novo mapa ainda não evidenciado |
-| M02 | Mundo | Setores expansíveis, coordenadas e continuidade das bordas | Há geração de terreno em pedaços; estrutura regional e continuidade futura aguardam implementação/evidência |
-| M03 | Mundo | Vale, lago, riacho, trilhas e pontes conectadas | Código examinado gera a ilha de provas anterior |
+| M01 | Mundo | Envelope horizontal próximo de 1.000 × 1.000 m | Em implementação: RegionData declara 1.000 × 1.000 m; dimensão da nova cena ainda aguarda evidência |
+| M02 | Mundo | Setores expansíveis, coordenadas e continuidade das bordas | Em implementação: WorldGrid de 200 m, coordenadas negativas, WorldAtlas e hashes estáveis encontrados; continuidade real aguarda evidência |
+| M03 | Mundo | Vale, lago, riacho, trilhas e pontes conectadas | RegionData já prevê esses componentes; preenchimento dos dados e construção da região aguardam evidência |
 | M04 | Mundo | Pomares, espécies frutíferas e vegetação contextual | Há árvores genéricas, pinheiros e coleta de maçãs; novo sistema ambiental aguarda evidência |
 | M05 | Mundo | Acabamento em toda a área e fidelidade aos três mockups | Capturas disponíveis mostram a base antiga; aguardando capturas novas |
 | M06 | Mundo | Cena de entrada realmente usa a nova região | Build/cena examinados ainda usam Prototype |
 | M07 | Mundo | Desempenho medido na área completa | Sem evidência examinada de medição do novo km² |
 | M08 | Mundo | Circulação, colisões, água e bordas verificadas | Aguardando evidências recentes da implementadora |
-| P01 | Personagem | Aparência de anime compatível com a referência | Diferença visual na captura anterior; modelos foram modificados depois |
+| P01 | Personagem | Aparência de anime compatível com a referência | Divergência no turnaround apresentado pelo usuário; versão em produção segue em revisão |
 | P02 | Personagem | Roupas, bolsa, espada e escudo consistentes | Aguardar nova prancha/turnaround e comparação dos modelos atuais |
 | P03 | Personagem | Poses e animações integradas | Há scripts, cenas e capturas de demonstração anteriores; revalidar após mudanças |
 | P04 | Personagem | Visual final demonstrado no cenário real | Aguardar evidências atuais de gameplay |
@@ -69,7 +71,9 @@ A grade de 25 setores de 200 m, as coordenadas indicativas e as porcentagens de 
 
 ### AUD-M01 — P1 — Dimensão do primeiro mapa
 
-**Estado:** base anterior identificada; novo km² aguardando implementação.
+**Estado:** novo km² em implementação; integração e dimensão efetiva aguardando evidência.
+
+**Atualização de 03:13:** `Scripts/Domain/Regions/RegionData.cs` foi criado às 03:11 e declara `sizeU = 1000f`, `sizeV = 1000f`, origem configurável e coordenadas em metros. É avanço alinhado ao pedido. Uma declaração de dados ainda não comprova a extensão do terreno em execução.
 
 **Evidência:** `Zeldexile/Assets/Zeldexile/Scripts/Runtime/World/Terrain/IslandShape.cs:14` define X de −80 a 100 e Z de −80 a 80. `Gameplay/PrototypeWorld.cs:78–79` usa esses limites para construir o terreno.
 
@@ -81,7 +85,9 @@ A grade de 25 setores de 200 m, as coordenadas indicativas e as porcentagens de 
 
 ### AUD-M02 — P1 — Continuidade e expansão das bordas
 
-**Estado:** base anterior; compatibilidade futura aguardando implementação.
+**Estado:** estrutura regional em implementação; continuidade em execução aguardando evidência.
+
+**Atualização de 03:13:** `Scripts/Domain/Regions/Sectors.cs` implementa `SectorCoord` com índices negativos e IDs por coordenadas, `WorldGrid` com tamanho padrão de 200 m e `WorldAtlas` com registro de regiões, propriedade de setores e consulta de vizinhos. `RegionMath.cs` acrescenta hashes determinísticos por inteiros e strings. `RegionData.cs` prevê faixa de transição e conexões. Esses avanços atendem parte da preparação para expansão; ainda é necessário observar seu uso pela região e a continuidade das bordas.
 
 **Evidência:** `IslandShape.cs:63–66` eleva uma cordilheira em função dos limites globais da ilha. `PrototypeWorld.cs:82–85` instala paredes invisíveis nas quatro bordas. `FacetedTerrain.cs:14–33` já divide a malha em pedaços com amostragem de uma função de altura comum.
 
@@ -93,7 +99,9 @@ A grade de 25 setores de 200 m, as coordenadas indicativas e as porcentagens de 
 
 ### AUD-M03 — P1 — Geografia e rotas do novo vale
 
-**Estado:** novo conteúdo não evidenciado nas fontes da primeira leitura.
+**Estado:** estruturas de dados em implementação; conteúdo construído ainda aguardando evidência.
+
+**Atualização de 03:13:** `RegionData.cs` já contém descrições de lago com contorno, zonas de margem, riachos, caminhos, pontes, áreas de cobertura, pontos de interesse, spawn, conexões e câmeras documentadas. O conjunto é coerente com o plano. A leitura não encontrou ainda evidência de região populada e renderizada; não classificar essa etapa intermediária como falha.
 
 **Evidência:** `PrototypeWorld.Awake` constrói acampamento, Mesa Alta, lago de prova e portão de pilares. `IslandShape.cs:23` descreve um lago-base de 56 × 58 unidades, modificado pela função de altura. Não foi localizada uma implementação de pomar regional, riacho e pontes no diretório de runtime examinado.
 
@@ -116,6 +124,8 @@ A grade de 25 setores de 200 m, as coordenadas indicativas e as porcentagens de 
 ### AUD-M05 — P2 — Escalabilidade da grama e estabilidade procedural
 
 **Estado:** risco de adaptação identificado por fonte; desempenho do km² não medido.
+
+**Atualização de 03:13:** o novo `RegionMath.cs` fornece hashes e ruído determinísticos e `Sectors.cs` fornece IDs espaciais estáveis. São avanços positivos; verificar posteriormente se distribuição ambiental e persistência usam essa base. A observação sobre `GrassField` refere-se ao código anterior e deve ser reavaliada quando a nova vegetação for integrada.
 
 **Evidência:** `GrassField.cs:15–18,55–79,90–94` gera listas de matrizes para a área inteira, com densidade-base de 1,9 tufos/m², e percorre as células no Update para selecionar desenho por distância. `PrototypeWorld.cs:444–468` usa uma sequência aleatória global para colocar árvores e pedras.
 
@@ -149,7 +159,22 @@ A grade de 25 setores de 200 m, as coordenadas indicativas e as porcentagens de 
 
 ### AUD-P01 — P2 — Fidelidade visual do personagem
 
-**Estado:** diferença na captura anterior; revisão do modelo em andamento.
+**Estado:** divergência visual no material apresentado; revisão do personagem em andamento.
+
+**Evidência adicional fornecida pelo usuário:** nesta conversa foi anexado o turnaround `C:/Users/BILLYF~1/AppData/Local/Temp/codex-clipboard-b60b9125-0a42-4126-b4c7-2e6eada2e342.png`. O usuário confirma que considera a aparência distante do mockup e solicita acompanhar a evolução antes de um julgamento final. A data de captura não foi informada; não atribuir automaticamente essa imagem ao último FBX modificado.
+
+**Diferenças observáveis nessa imagem e correções a verificar nas próximas versões:**
+
+- Tronco, braços e pernas têm formas retilíneas, estreitas e segmentadas; aproximar a silhueta atlética e os volumes orgânicos do mockup.
+- Rosto apresenta planos duros e poucos traços visíveis; avaliar contorno facial, olhos, sobrancelhas, nariz e expressão em aproximação comparável à referência.
+- Cabelo conserva a cor geral, mas suas pontas e massas são muito geométricas; conferir mechas, franja, volume e ligação com o rosto.
+- Jaqueta tem leitura rígida e pouco volume; verificar abertura frontal, gola, ombros, mangas, sobreposição à camisa e acabamento dourado.
+- Calça e membros apresentam pouca variação de volume; conferir quadril, coxas, joelhos e transição para botas sem perder a aparência de jovem adulto.
+- A lâmina aparece quase como uma linha fina; verificar espessura/proporção, material, iluminação e enquadramento antes de atribuir o efeito apenas à malha.
+- Escudo e faixas de roupa precisam manter distinção visual dos materiais e detalhes em distâncias equivalentes.
+- Contorno escuro e facetas podem dominar os traços; avaliar o conjunto de geometria, materiais e iluminação. Aumentar a quantidade de polígonos isoladamente não comprova aproximação ao estilo aprovado.
+
+Essas observações são de auditoria. Não autorizam o auditor a alterar qualquer recurso ou orientar diretamente a outra IA.
 
 **Evidência visual examinada:** `Docs/media/heroi-comparacao.png`, aproximadamente 02:53, compara o mockup aprovado ao personagem implementado então. A implementação exibida tem membros mais retilíneos e estreitos, rosto/cabelo mais simplificados e leitura de roupa menos próxima da referência anime.
 
@@ -171,6 +196,8 @@ A grade de 25 setores de 200 m, as coordenadas indicativas e as porcentagens de 
 
 ## Pontos positivos já identificados
 
+- Na leitura de 03:13 já surgiram dados de região de 1 km², setores expansíveis e matemática determinística. A implementadora está avançando no cenário.
+- `CharacterRig.cs` teve nova modificação às 03:07 e `CharacterAnimator.cs` às 03:09, coerentes com o trabalho simultâneo no personagem. Alterações de código não comprovam por si só o resultado visual.
 - A arquitetura já separa domínio, runtime, editor e testes.
 - Há terreno gerado em pedaços, cada um com renderização e colisão.
 - A vegetação já possui instanciamento e seleção por distância.
@@ -198,4 +225,5 @@ A grade de 25 setores de 200 m, as coordenadas indicativas e as porcentagens de 
 |---|---|
 | 17/10/2026, 03:06–03:08 | Primeira auditoria por leitura e inspeção de capturas existentes. Base antiga identificada. Nenhuma execução ou alteração de implementação pelo auditor. |
 | 17/10/2026, configuração do acompanhamento | Usuário confirmou frequência de 5 minutos e trabalho simultâneo em personagem e cenário. Relatório preparado para atualizações incrementais; pendências de criação não equivalem a erros definitivos. |
+| 17/10/2026, 03:13 | Confirmados novos RegionData, Sectors e RegionMath. Atualizada a matriz para reconhecer a implementação de estrutura regional. Registrada imagem fornecida pelo usuário e suas diferenças visuais. Acompanhamento automático de 5 minutos criado e confirmado ativo; nenhuma intervenção na implementação. |
 
