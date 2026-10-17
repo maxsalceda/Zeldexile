@@ -58,6 +58,9 @@ namespace Zeldexile.UI
         private GUIStyle _small;
         private GUIStyle _title;
         private GUIStyle _button;
+        // Centered variants, built once with the others (IMGUI rule: never allocate a GUIStyle inside OnGUI).
+        private GUIStyle _labelCentered;
+        private GUIStyle _smallCentered;
         private bool _subscribed;
 
         private void Start()
@@ -135,6 +138,8 @@ namespace Zeldexile.UI
             _small = new GUIStyle(GUI.skin.label) { fontSize = 13, richText = true, wordWrap = true };
             _title = new GUIStyle(GUI.skin.label) { fontSize = 18, fontStyle = FontStyle.Bold, richText = true };
             _button = new GUIStyle(GUI.skin.button) { richText = true, alignment = TextAnchor.MiddleLeft, fontSize = 13 };
+            _labelCentered = new GUIStyle(_label) { alignment = TextAnchor.MiddleCenter };
+            _smallCentered = new GUIStyle(_small) { alignment = TextAnchor.MiddleCenter };
         }
 
         private void OnGUI()
@@ -305,7 +310,7 @@ namespace Zeldexile.UI
         {
             if (Time.unscaledTime > _bannerUntil || _banner == null) return;
             GUI.Label(new Rect(UnityEngine.Screen.width / 2f - 240, UnityEngine.Screen.height * 0.25f, 480, 30), $"<color=#ffe27a><size=20><b>{_banner}</b></size></color>",
-                new GUIStyle(_label) { alignment = TextAnchor.MiddleCenter });
+                _labelCentered);
         }
 
         private void DrawFocusOverlay()
@@ -361,14 +366,14 @@ namespace Zeldexile.UI
             if (prompts.Count > 0)
             {
                 var text = string.Join("     ", prompts);
-                var style = new GUIStyle(_label) { alignment = TextAnchor.MiddleCenter };
+                var style = _labelCentered;
                 var rect = new Rect(UnityEngine.Screen.width / 2f - 300, UnityEngine.Screen.height - 44, 600, 28);
                 Fill(rect, new Color(0f, 0f, 0f, 0.4f));
                 GUI.Label(rect, $"<color=#eee>{text}</color>", style);
             }
 
             const string help = "<b>Clique</b> atacar · <b>F</b> arremessar · <b>Botão direito</b> arco · <b>R</b> runa (<b>1-4</b> escolhe) · <b>Q</b> travar / segurar = escudo · <b>E</b> usar · <b>Scroll</b> zoom · <b>Tab</b> bolsa";
-            GUI.Label(new Rect(UnityEngine.Screen.width / 2f - 420, 14, 840, 24), $"<color=#bbb><size=12>{help}</size></color>", new GUIStyle(_small) { alignment = TextAnchor.MiddleCenter });
+            GUI.Label(new Rect(UnityEngine.Screen.width / 2f - 420, 14, 840, 24), $"<color=#bbb><size=12>{help}</size></color>", _smallCentered);
         }
 
         /// <summary>Lock-on arrow and name; a health bar only while the creature is awake or targeted.</summary>
@@ -385,7 +390,7 @@ namespace Zeldexile.UI
                 if (locked)
                 {
                     GUI.Label(new Rect(p.x - 10, r.y - 46, 30, 30), "<color=#ffb03c><size=24><b>▼</b></size></color>", _label);
-                    GUI.Label(new Rect(p.x - 70, r.y + 8, 140, 18), $"<size=11><color=#eee>{e.DisplayName}</color></size>", new GUIStyle(_small) { alignment = TextAnchor.MiddleCenter });
+                    GUI.Label(new Rect(p.x - 70, r.y + 8, 140, 18), $"<size=11><color=#eee>{e.DisplayName}</color></size>", _smallCentered);
                 }
 
                 if (e.IsAware || locked) Bar(r, e.Health.Current / e.Health.Max, World.Palette.ForTier(e.Tier), null);
