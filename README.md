@@ -11,7 +11,8 @@ Design completo: [Docs/GDD.md](Docs/GDD.md) e a Bíblia de Design (link no GDD).
 2. Abra `Assets/Zeldexile/Scenes/Prototype.unity` e aperte Play.
    Se a cena sumir, recrie pelo menu **Zeldexile → Recriar cena de protótipo**.
 3. **Mundo aberto**: `Assets/Zeldexile/Scenes/ValeInicial.unity` é a primeira região (1 km², o Vale dos Pomares).
-   Recrie pelo menu **Zeldexile → Recriar cena do Vale Inicial**; no build, `Zeldexile.exe -vale`.
+   Recrie pelo menu **Zeldexile → Recriar cena do Vale Inicial**. O jogo (build) abre nele;
+   `Zeldexile.exe -ilha` abre a ilha de protótipo e `-vitrine` a vitrine do herói.
    Detalhes, medições e como expandir: [Docs/Regiao-Vale-Inicial.md](Docs/Regiao-Vale-Inicial.md).
 
 ## Controles

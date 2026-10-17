@@ -13,8 +13,11 @@ com sementes fixas: toda execução produz o mesmo vale.
   (U 503, V 116), ao lado de uma fogueira com panela, olhando para o norte.
 - **Recriar a cena**: menu **Zeldexile → Recriar cena do Vale Inicial**
   (ou `-executeMethod Zeldexile.EditorTools.RegionSceneBuilder.Build`).
-- **No build Windows**: `Zeldexile.exe -vale` abre o vale. A cena entrou na lista de build; a primeira cena do
-  build continua sendo a ilha de protótipo (veja "Pendências").
+- **No build Windows**: `Builds/Windows/Zeldexile.exe` abre direto no vale (é a primeira cena do build).
+  `-ilha` abre a ilha de protótipo e `-vitrine` a vitrine do herói. Para gerar o build sem recriar as cenas do
+  protótipo: menu **Zeldexile → Gerar build Windows (cenas salvas)**.
+- **Clima**: a altitude conta a partir dos prados (8 m acima do lago), com resfriamento suave (12% do da ilha):
+  ~19 °C na entrada às 9h, nunca abaixo de 0 °C nem acima de 40 °C no vale (teste `ValleyIsNeverFreezingOrScorching`).
 - **Build só do vale, para medir**: menu **Zeldexile → Gerar build de medição do Vale**
   (`Builds/ValeBench/Zeldexile.exe`). Para medir: `Zeldexile.exe -zxbench <pasta>`.
 - **Controles**: os mesmos da ilha (README). Tudo o que o herói já faz funciona aqui: andar, correr, escalar
@@ -286,8 +289,6 @@ projeto como recursos do mundo).
 
 ## Pendências reais
 
-- **Cena inicial do build**: o executável ainda abre a ilha de protótipo; o vale abre com `-vale`. Trocar a ordem
-  é uma decisão de produto.
 - **Desempenho em hardware modesto**: só medido numa máquina topo de linha. Faltam medições numa placa de entrada
   e definir a meta oficial.
 - **Áudio ambiente**: o projeto não tem estrutura de áudio; o vale não tem sons ainda.

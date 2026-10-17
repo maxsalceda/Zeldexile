@@ -74,6 +74,19 @@ namespace Zeldexile.Tests
         }
 
         [Test]
+        public void ValleyIsNeverFreezingOrScorching()
+        {
+            var climate = _world.Player.GetComponent<Zeldexile.Player.PlayerClimate>();
+            foreach (var (u, v) in new[] { (_world.Data.spawn.u, _world.Data.spawn.v), (512f, 890f), (560f, 918f), (760f, 280f) })
+            foreach (var hour in new[] { 4f, 9f, 14f, 23f })
+            {
+                var y = _world.WorldAt(u, v).y;
+                var c = Domain.Temperature.At(hour, (y - climate.AltitudeReference) * climate.LapseScale, Domain.WeatherKind.Clear, 0f);
+                Assert.That(c, Is.InRange(Domain.Temperature.ColdThreshold, Domain.Temperature.HotThreshold), $"({u},{v}) at {hour}h: {c:0.0} °C");
+            }
+        }
+
+        [Test]
         public void TerrainSpansTheWholeEnvelope()
         {
             var sectors = GameObject.Find("Terreno").transform;

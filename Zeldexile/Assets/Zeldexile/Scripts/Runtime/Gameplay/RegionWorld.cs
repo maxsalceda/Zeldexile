@@ -121,6 +121,14 @@ namespace Zeldexile.Gameplay
             if (Player == null) return;
             Player.transform.rotation = Quaternion.Euler(0f, Data.spawn.yaw, 0f);
             Motor = Player.GetComponent<PlayerMotor>();
+            // Altitude counts from the meadows (8 m above the lake), cooling about 7 °C up to the summit.
+            var climate = Player.GetComponent<PlayerClimate>();
+            if (climate != null)
+            {
+                climate.AltitudeReference = Data.lakeLevel + Data.relief.baseHeight;
+                climate.LapseScale = 0.12f;
+            }
+
             if (world.Atmosphere != null) world.Atmosphere.FogDistanceScale = 3.4f;
             var cam = Camera.main;
             if (cam != null) cam.farClipPlane = 3000f;

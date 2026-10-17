@@ -52,13 +52,12 @@ namespace Zeldexile.EditorTools
             if (Application.isBatchMode && summary.result != UnityEditor.Build.Reporting.BuildResult.Succeeded) EditorApplication.Exit(1);
         }
 
-        /// <summary>Adds the region scene to the build list, keeping every scene already there.</summary>
+        /// <summary>Puts the region first in the build list (the game opens there), keeping every other scene.</summary>
         public static void AddToBuild()
         {
             if (AssetDatabase.LoadAssetAtPath<SceneAsset>(ScenePath) == null) return;
-            var scenes = EditorBuildSettings.scenes.ToList();
-            if (scenes.Any(s => s.path == ScenePath)) return;
-            scenes.Add(new EditorBuildSettingsScene(ScenePath, true));
+            var scenes = EditorBuildSettings.scenes.Where(s => s.path != ScenePath).ToList();
+            scenes.Insert(0, new EditorBuildSettingsScene(ScenePath, true));
             EditorBuildSettings.scenes = scenes.ToArray();
         }
 

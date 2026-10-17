@@ -13,7 +13,16 @@ namespace Zeldexile.EditorTools
         public static void Build()
         {
             PrototypeSceneBuilder.Build();
+            BuildFromSavedScenes();
+        }
+
+        /// <summary>Same build, from the scenes as they are saved (nothing is regenerated).</summary>
+        [MenuItem("Zeldexile/Gerar build Windows (cenas salvas)")]
+        public static void BuildFromSavedScenes()
+        {
             if (AssetDatabase.LoadAssetAtPath<SceneAsset>(RegionSceneBuilder.ScenePath) == null) RegionSceneBuilder.Build();
+            RegionSceneBuilder.EnsureMaterials();
+            RegionSceneBuilder.AddToBuild();
 
             PlayerSettings.productName = "Zeldexile";
             PlayerSettings.companyName = "Zeldexile";
@@ -26,7 +35,7 @@ namespace Zeldexile.EditorTools
 
             var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
             {
-                scenes = new[] { PrototypeSceneBuilder.ScenePath, PrototypeSceneBuilder.ShowcasePath, RegionSceneBuilder.ScenePath },
+                scenes = new[] { RegionSceneBuilder.ScenePath, PrototypeSceneBuilder.ScenePath, PrototypeSceneBuilder.ShowcasePath },
                 locationPathName = Output,
                 target = BuildTarget.StandaloneWindows64,
                 options = BuildOptions.None

@@ -16,6 +16,11 @@ namespace Zeldexile.Player
 
         [SerializeField] private float fireRadius = 5f;
 
+        /// <summary>World Y counted as altitude zero, and how strongly height cools the air there. The island uses
+        /// 0 and 1; a large region sets its valley floor and a gentler lapse so its hills are cool, not deadly.</summary>
+        public float AltitudeReference;
+        public float LapseScale = 1f;
+
         private static readonly Collider[] Buffer = new Collider[32];
         private float _nextTick;
 
@@ -34,7 +39,7 @@ namespace Zeldexile.Player
 
             var fire = FireProximity();
             NearFire = fire > 0f;
-            Celsius = Temperature.At(atmosphere.Clock.Hour, transform.position.y, atmosphere.CurrentWeather, fire);
+            Celsius = Temperature.At(atmosphere.Clock.Hour, (transform.position.y - AltitudeReference) * LapseScale, atmosphere.CurrentWeather, fire);
             DamageInterval = Temperature.DamageInterval(Celsius,
                 Character.Stats.Level(StatId.ColdResistance), Character.Stats.Level(StatId.HeatResistance));
 
