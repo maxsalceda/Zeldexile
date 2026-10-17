@@ -19,7 +19,7 @@ namespace Zeldexile.Player
         [SerializeField] private float shoulderOffset = 0.6f;
 
         [Header("Zoom")]
-        [SerializeField] private float minDistance = 2.5f;
+        [SerializeField] private float minDistance = 1.2f;
         [SerializeField] private float maxDistance = 12f;
         [SerializeField] private float zoomStep = 0.9f;
         [SerializeField] private float zoomSmoothing = 10f;

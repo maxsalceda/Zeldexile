@@ -89,8 +89,10 @@ namespace Zeldexile.Player
             if (mouse != null)
             {
                 look += mouse.delta.ReadValue() * 0.1f;
-                // One wheel notch reads 120 on Windows; normalise to 1 per notch.
-                zoom += mouse.scroll.ReadValue().y / 120f;
+                // One notch = 1. The Input System normalises the wheel to [-1, 1] by default (Scroll Delta Behavior
+                // "Uniform Across All Platforms"); with the platform range instead, Windows reports 120 per notch.
+                var wheel = mouse.scroll.ReadValue().y;
+                zoom += Mathf.Abs(wheel) > 10f ? wheel / 120f : wheel;
                 attack |= mouse.leftButton.wasPressedThisFrame;
                 bowAim |= mouse.rightButton.isPressed;
                 heavyDown |= mouse.rightButton.wasPressedThisFrame;
