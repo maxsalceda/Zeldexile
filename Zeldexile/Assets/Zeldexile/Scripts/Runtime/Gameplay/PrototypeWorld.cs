@@ -191,6 +191,8 @@ namespace Zeldexile.Gameplay
             motor.Landed += meters => { if (meters > 3f) animator.Play(ActionKind.Land); };
             motor.ClimbJumped += () => animator.Play(ActionKind.ClimbJump);
             motor.Vaulted += () => animator.Play(ActionKind.Vault);
+            combat.HeavyHitTimes = animator.HeavyStrikeTimes;
+            combat.HeavyDuration = () => animator.HeavyDuration();
             motor.SwimDashed += () => animator.Play(ActionKind.SwimDash);
 
             health.Damaged += (_, amount, _) => GameFeel.AddTrauma(Mathf.Clamp(amount / 12f, 0.15f, 0.6f));

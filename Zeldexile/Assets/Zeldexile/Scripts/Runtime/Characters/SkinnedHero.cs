@@ -148,6 +148,7 @@ namespace Zeldexile.Characters
             rig.RunningJump = MotionClip.Load(style.RunningJumpClip);
             rig.Vault = MotionClip.Load(style.VaultClip);
             rig.Kick = MotionClip.Load(style.KickClip);
+            rig.Climb = MotionClip.Load(style.ClimbClip);
             return rig;
         }
 

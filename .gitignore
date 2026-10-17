@@ -57,3 +57,6 @@ desktop.ini
 # Serena language-server logs and caches
 .serena/logs/
 .serena/cache/
+
+# Animações e modelos baixados (fonte); as cópias usadas ficam em Resources/Models/Skinned
+MAXFiles/

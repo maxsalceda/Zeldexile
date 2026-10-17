@@ -181,7 +181,7 @@ namespace Zeldexile.Tests
             const float WalkSpeed = 1.5f;
             const int frames = 8, cellW = 300, cellH = 380;
             const float CrouchSpeed = 0.9f, TurnRate = -70f;
-            var rows = new[] { "walk", "crouch", "turn", "run", "jump", "slash", "overhead", "heavy", "kick", "vault" };
+            var rows = new[] { "walk", "crouch", "turn", "run", "jump", "climb", "slash", "overhead", "heavy", "kick", "vault" };
             var sheet = new Texture2D(frames * cellW, rows.Length * cellH, TextureFormat.RGB24, false);
             var stage = new GameObject("Folha de movimento");
             stage.transform.position = new Vector3(0f, 300f, 0f);
@@ -201,11 +201,13 @@ namespace Zeldexile.Tests
             for (var row = 0; row < rows.Length; row++)
             {
                 var kind = rows[row];
-                var moving = kind == "walk" || kind == "run" || kind == "crouch" || kind == "turn";
-                var rowSpeed = kind == "run" ? 7.5f : kind == "crouch" ? CrouchSpeed : WalkSpeed;
+                var climbing = kind == "climb";
+                var moving = kind == "walk" || kind == "run" || kind == "crouch" || kind == "turn" || climbing;
+                var rowSpeed = kind == "run" ? 7.5f : kind == "crouch" ? CrouchSpeed : climbing ? 2f : WalkSpeed;
                 // Side view: walking toward screen right; swings seen three-quarter so the trunk twist shows.
-                var hero = Hero(stage.transform, Vector3.zero, moving ? 90f : 125f, Locomotion.Grounded,
-                    moving ? new Vector3(0f, 0f, rowSpeed) : Vector3.zero, ActionKind.None, 0f, moving ? "" : "armed");
+                var hero = Hero(stage.transform, Vector3.zero, moving ? 90f : 125f, climbing ? Locomotion.Climbing : Locomotion.Grounded,
+                    climbing ? new Vector3(0f, rowSpeed, 0f) : moving ? new Vector3(0f, 0f, rowSpeed) : Vector3.zero,
+                    ActionKind.None, 0f, moving ? "" : "armed");
                 var animator = hero.GetComponent<CharacterAnimator>();
                 animator.Crouching = kind == "crouch";
                 if (row == 0)
@@ -219,6 +221,8 @@ namespace Zeldexile.Tests
                     if (r.TurnLeft != null) Debug.Log($"Curva: {r.TurnLeft.TurnDegrees:F0} graus; meia-volta: {r.TurnAround?.TurnDegrees:F0} graus");
                     if (r.CrouchWalk != null) Debug.Log($"Agachado: {r.CrouchWalk.Speed:F2} m/s");
                     Debug.Log($"Salto: {r.Jump?.AirPhases()} / correndo {r.RunningJump?.AirPhases()}; beirada: {r.Vault?.Duration:F2} s; chute: {r.Kick?.Duration:F2} s");
+                    if (r.Climb != null) Debug.Log($"Escalada: ciclo de {r.Climb.VerticalTravel:F2} m em {r.Climb.Duration:F2} s");
+                    Debug.Log($"Pesado: {animator.HeavyDuration():F2} s, golpes em {string.Join(", ", System.Array.ConvertAll(animator.HeavyStrikeTimes(), x => x.ToString("F2")))}");
                 }
 
                 // The turn row spins the hero to its left while it walks, as the motor would.
@@ -235,10 +239,11 @@ namespace Zeldexile.Tests
                     {
                         // One full stride over the row: a captured loop when the rig has one, else 2 procedural steps.
                         var rig = animator.Rig;
-                        var clip = kind == "run" ? rig.Run : kind == "crouch" ? rig.CrouchWalk : rig.Walk;
+                        var clip = kind == "run" ? rig.Run : kind == "crouch" ? rig.CrouchWalk : climbing ? rig.Climb : rig.Walk;
                         var speed = rowSpeed;
-                        var period = clip != null ? Mathf.Max(clip.CycleDistance / speed, clip.Duration / 1.6f)
-                            : (kind == "walk" ? 3f : 3.9f) / speed;
+                        var period = clip == null ? (kind == "walk" ? 3f : 3.9f) / speed
+                            : climbing ? Mathf.Max(clip.VerticalTravel / speed, clip.Duration / 2.5f)
+                            : Mathf.Max(clip.CycleDistance / speed, clip.Duration / 1.6f);
                         if (f == 0 && clip != null)
                             Debug.Log($"Clipe {kind}: {clip.Speed:F2} m/s, ciclo {clip.CycleDistance:F2} m em {clip.Duration:F2} s");
                         var until = Time.time + period / frames;

@@ -33,14 +33,24 @@ namespace Zeldexile.Player
         public event Action<ActionKind> Acted;
 
         public bool Guarding => Input.GuardHeld && Character.Shield != null && Character.Shield.IsUsable && Motor.IsGrounded;
-        public bool Aiming => Input.BowAimHeld && Character.Bow != null && Character.Bow.IsUsable;
+        /// <summary>A tap of the right button is the heavy attack; held this long with a bow, it draws the bow instead.</summary>
+        private const float AimHoldSeconds = 0.22f;
+
+        public bool Aiming => BowUsable && Input.BowAimHeld && _aimHeldSince >= 0f && Time.time - _aimHeldSince >= AimHoldSeconds;
+        private bool BowUsable => Character.Bow != null && Character.Bow.IsUsable;
+
+        /// <summary>Seconds after a heavy attack starts at which each of its strikes lands (set by the world from the animator).</summary>
+        public System.Func<float[]> HeavyHitTimes;
+        /// <summary>How long the heavy attack animation runs, in seconds (set with <see cref="HeavyHitTimes"/>).</summary>
+        public System.Func<float> HeavyDuration;
         /// <summary>Weapon drawn: a few seconds after an attack, while guarding, or with a target locked.</summary>
         public bool InCombatStance => Time.time < _stanceUntil || Guarding || (Targeting != null && Targeting.Target != null);
         public int Combo { get; private set; }
 
         private float _nextAttack;
         private float _lastSwing = -10f;
-        private float _pendingHit = -1f;
+        private readonly List<(float at, float multiplier, bool last)> _pendingHits = new List<(float, float, bool)>();
+        private float _aimHeldSince = -1f;
         private float _parryUntil = -1f;
         private float _nextShot;
         private float _stanceUntil = -10f;
@@ -58,13 +68,29 @@ namespace Zeldexile.Player
 
             if (Guarding && Input.JumpPressed) _parryUntil = Time.time + parryWindow;
 
-            if (_pendingHit > 0f && Time.time >= _pendingHit)
+            for (var i = _pendingHits.Count - 1; i >= 0; i--)
             {
-                _pendingHit = -1f;
-                ResolveSwing();
+                if (Time.time < _pendingHits[i].at) continue;
+                var (_, power, last) = _pendingHits[i];
+                _pendingHits.RemoveAt(i);
+                ResolveSwing(power, last);
             }
 
             if (Motor.Current == PlayerMotor.State.Climbing || Motor.Current == PlayerMotor.State.Swimming) return;
+
+            // Right button: without a bow it is the heavy attack at once; with one, a tap is the heavy attack and
+            // holding it draws the bow.
+            if (Input.HeavyPressed)
+            {
+                if (BowUsable) _aimHeldSince = Time.time;
+                else if (!Guarding) HeavySwing();
+            }
+
+            if (Input.HeavyReleased && _aimHeldSince >= 0f)
+            {
+                if (Time.time - _aimHeldSince < AimHoldSeconds && !Guarding) HeavySwing();
+                _aimHeldSince = -1f;
+            }
 
             if (Aiming)
             {
@@ -89,28 +115,49 @@ namespace Zeldexile.Player
             _nextAttack = Time.time + cooldown;
             _lastSwing = Time.time;
             Combo++;
-            _pendingHit = Time.time + swingDelay;
+            _pendingHits.Add((Time.time + swingDelay, 1f, Combo % (weapon?.Definition.ComboHits ?? 3) == 0));
             // The last swing of a one-handed combo (double damage) is the captured sword kick.
             var finisher = cls == WeaponClass.OneHanded && Combo % (weapon?.Definition.ComboHits ?? 3) == 0;
             Act(cls == WeaponClass.TwoHanded ? ActionKind.SlashHeavy : cls == WeaponClass.Spear ? ActionKind.Thrust
                 : finisher ? ActionKind.Kick : ActionKind.SlashLight);
-
-            if (Targeting != null && Targeting.Target != null)
-            {
-                var to = Targeting.Target.transform.position - transform.position;
-                to.y = 0f;
-                if (to.sqrMagnitude > 0.01f) transform.rotation = Quaternion.LookRotation(to.normalized, Vector3.up);
-            }
+            FaceTarget();
         }
 
-        private void ResolveSwing()
+        /// <summary>
+        /// Heavy attack: the captured sword-and-shield combo, every strike of it landing in turn (the last one as
+        /// the end of a combo). Locks the weapon for its whole duration.
+        /// </summary>
+        private void HeavySwing()
+        {
+            if (Time.time < _nextAttack) return;
+            var weapon = Character.Weapon;
+            if (weapon != null && !weapon.IsUsable) weapon = null;
+            if (weapon != null && weapon.Class == WeaponClass.Spear) return; // no heavy with a spear yet
+            var times = HeavyHitTimes?.Invoke();
+            if (times == null || times.Length == 0) times = new[] { swingDelay + 0.3f };
+            var duration = HeavyDuration?.Invoke() ?? times[times.Length - 1] + 0.3f;
+            _nextAttack = Time.time + duration;
+            _lastSwing = Time.time;
+            Combo = 0;
+            for (var i = 0; i < times.Length; i++) _pendingHits.Add((Time.time + times[i], 1.2f, i == times.Length - 1));
+            Act(ActionKind.SlashHeavy);
+            FaceTarget();
+        }
+
+        private void FaceTarget()
+        {
+            if (Targeting == null || Targeting.Target == null) return;
+            var to = Targeting.Target.transform.position - transform.position;
+            to.y = 0f;
+            if (to.sqrMagnitude > 0.01f) transform.rotation = Quaternion.LookRotation(to.normalized, Vector3.up);
+        }
+
+        private void ResolveSwing(float power, bool lastOfCombo)
         {
             var weapon = Character.Weapon;
             if (weapon != null && !weapon.IsUsable) weapon = null;
             var cls = weapon?.Class ?? WeaponClass.OneHanded;
             var reach = cls == WeaponClass.Spear ? 2.8f : cls == WeaponClass.TwoHanded ? 2.2f : 1.7f;
-            var comboHits = weapon?.Definition.ComboHits ?? 3;
-            var lastOfCombo = Combo % comboHits == 0;
 
             var center = transform.position + Vector3.up * 1f + transform.forward * reach * 0.55f;
             var count = Physics.OverlapSphereNonAlloc(center, reach * 0.7f, Buffer, Physics.AllLayers, QueryTriggerInteraction.Collide);
@@ -133,11 +180,11 @@ namespace Zeldexile.Player
             HitResult hit;
             if (weapon != null)
             {
-                hit = weapon.Strike(1f, Character.Stats.Get(StatId.AttackPercent), lastOfCombo);
+                hit = weapon.Strike(power, Character.Stats.Get(StatId.AttackPercent), lastOfCombo);
             }
             else
             {
-                hit = new HitResult { Damage = DamageRules.Dealt((int)unarmedAttack, 1f, Character.Stats.Get(StatId.AttackPercent)) };
+                hit = new HitResult { Damage = DamageRules.Dealt((int)unarmedAttack, power, Character.Stats.Get(StatId.AttackPercent)) };
             }
 
             foreach (var target in targets)

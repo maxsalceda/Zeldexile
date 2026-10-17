@@ -137,9 +137,8 @@ namespace Zeldexile.Characters
             CurrentAction = kind;
             _actionStart = Time.time;
             _actionDuration = duration > 0f ? duration : DefaultDuration(kind);
-            // Captured swings carry a real wind-up and follow-through: they get a little more time.
-            if (duration <= 0f && HasCapturedSwings && (kind == ActionKind.SlashLight || kind == ActionKind.SlashHeavy))
-                _actionDuration *= 1.35f;
+            // The heavy attack plays the whole captured combo, so it lasts as long as the clip needs.
+            if (duration <= 0f && kind == ActionKind.SlashHeavy && HasCapturedSwings) _actionDuration = HeavyDuration();
             _heldProgress = -1f;
         }
 
@@ -203,7 +202,7 @@ namespace Zeldexile.Characters
             switch (Source.Locomotion)
             {
                 case Locomotion.Airborne: pose = _airClip != null ? CapturedAir(velocity.y) : Airborne(velocity.y); break;
-                case Locomotion.Climbing: pose = Climbing(velocity, dt); break;
+                case Locomotion.Climbing: pose = Rig.Climb != null ? CapturedClimb(velocity, dt) : Climbing(velocity, dt); break;
                 case Locomotion.Gliding: pose = Gliding(); break;
                 case Locomotion.Swimming: pose = Swimming(speed, dt); break;
                 default: pose = Rig.Walk != null || Rig.Run != null ? CapturedGround(speed, horizontal, dt) : Ground(speed, run, dt); break;
@@ -661,6 +660,24 @@ namespace Zeldexile.Characters
             };
         }
 
+        /// <summary>
+        /// Climbing with the captured loop (<see cref="CharacterRig.Climb"/>): one cycle per cycle height climbed,
+        /// sideways moves at the same cadence, holding still freezes the current hold. Capped at 2.5 times the
+        /// clip's own pace; the body is kept against the wall.
+        /// </summary>
+        private Pose CapturedClimb(Vector3 velocity, float dt)
+        {
+            var clip = Rig.Climb;
+            var speed = velocity.magnitude;
+            var travel = Mathf.Max(0.2f, clip.VerticalTravel);
+            if (speed > 0.05f) _clipProgress += Mathf.Min(speed / travel, 2.5f / clip.Duration) * dt;
+            var pose = clip.Sample(_clipProgress);
+            pose.FingersL = E(Grip);
+            pose.FingersR = E(Grip);
+            pose.HipsOffsetZ = 0.1f;
+            return pose;
+        }
+
         private Pose Climbing(Vector3 velocity, float dt)
         {
             var climbSpeed = velocity.magnitude;
@@ -835,14 +852,8 @@ namespace Zeldexile.Characters
             Pose target;
             switch (CurrentAction)
             {
-                case ActionKind.SlashLight:
-                    target = HasCapturedSwings
-                        ? CapturedSwing(t, _actionIndex % Mathf.Min(2, Rig.Slash.Strikes.Count), pose)
-                        : SlashLight(t, _actionIndex);
-                    break;
-                case ActionKind.SlashHeavy:
-                    target = HasCapturedSwings ? CapturedSwing(t, Rig.Slash.Strikes.Count - 1, pose) : SlashHeavy(t);
-                    break;
+                case ActionKind.SlashLight: target = SlashLight(t, _actionIndex); break;
+                case ActionKind.SlashHeavy: target = HasCapturedSwings ? CapturedHeavy(t, pose) : SlashHeavy(t); break;
                 case ActionKind.Thrust: target = Thrust(t); break;
                 case ActionKind.Throw: target = Throw(t); break;
                 case ActionKind.Shoot: target = Shoot(t, pose); break;
@@ -875,16 +886,43 @@ namespace Zeldexile.Characters
 
         private bool HasCapturedSwings => Rig != null && Rig.Slash != null && Rig.Slash.Strikes.Count > 0;
 
-        /// <summary>
-        /// One swing of the captured sword combo (<see cref="CharacterRig.Slash"/>): its wind-up fills the first 40 %
-        /// of the action, the peak lands there, the follow-through takes the rest. While the hero moves, the legs
-        /// keep most of the gait so a swing on the run does not freeze them; both hands keep their grip.
-        /// </summary>
-        private Pose CapturedSwing(float t, int strike, Pose current)
+        /// <summary>Clip progress covered by the heavy attack: the first strike's wind-up to the last one's follow-through.</summary>
+        private (float start, float end) HeavyWindow()
         {
-            var (start, peak, end) = Rig.Slash.Strikes[Mathf.Clamp(strike, 0, Rig.Slash.Strikes.Count - 1)];
-            var progress = t < 0.4f ? Mathf.Lerp(start, peak, t / 0.4f) : Mathf.Lerp(peak, end, (t - 0.4f) / 0.6f);
-            var pose = Rig.Slash.Sample(progress);
+            var strikes = Rig.Slash.Strikes;
+            return (strikes[0].start, strikes[strikes.Count - 1].end);
+        }
+
+        private const float HeavyRate = 1.3f;
+
+        /// <summary>Length of the heavy attack in seconds: the captured combo at <see cref="HeavyRate"/> speed.</summary>
+        public float HeavyDuration()
+        {
+            if (!HasCapturedSwings) return DefaultDuration(ActionKind.SlashHeavy);
+            var (start, end) = HeavyWindow();
+            return (end - start) * Rig.Slash.Duration / HeavyRate;
+        }
+
+        /// <summary>Seconds after the heavy attack starts at which each of its strikes peaks.</summary>
+        public float[] HeavyStrikeTimes()
+        {
+            if (!HasCapturedSwings) return new[] { DefaultDuration(ActionKind.SlashHeavy) * 0.5f };
+            var (start, end) = HeavyWindow();
+            var duration = HeavyDuration();
+            var times = new float[Rig.Slash.Strikes.Count];
+            for (var i = 0; i < times.Length; i++) times[i] = (Rig.Slash.Strikes[i].peak - start) / (end - start) * duration;
+            return times;
+        }
+
+        /// <summary>
+        /// The heavy attack: the whole captured sword combo (<see cref="CharacterRig.Slash"/>), wind-up of the first
+        /// strike to follow-through of the last. While the hero moves, the legs keep most of the gait so a swing on
+        /// the run does not freeze them; both hands keep their grip.
+        /// </summary>
+        private Pose CapturedHeavy(float t, Pose current)
+        {
+            var (start, end) = HeavyWindow();
+            var pose = Rig.Slash.Sample(Mathf.Lerp(start, end, t));
             pose.FingersR = E(Grip);
             if (ShieldInHand) pose.FingersL = E(Grip);
             var keepGait = Mathf.Clamp01(_groundSpeed / 1.2f) * 0.75f;

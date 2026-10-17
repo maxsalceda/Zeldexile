@@ -40,6 +40,8 @@ namespace Zeldexile.Characters
         public string RunningJumpClip;
         public string VaultClip;
         public string KickClip;
+        /// <summary>Captured climb loop (one cycle up a wall).</summary>
+        public string ClimbClip;
 
         public Color ColorFor(string slot)
         {
@@ -102,7 +104,8 @@ namespace Zeldexile.Characters
             JumpClip = "heroi_pular",
             RunningJumpClip = "heroi_pular_correndo",
             VaultClip = "heroi_subir_beirada",
-            KickClip = "heroi_chute"
+            KickClip = "heroi_chute",
+            ClimbClip = "heroi_escalar"
         };
 
         /// <summary>A creature style tinted by its tier: red, blue, black or silver.</summary>
@@ -201,6 +204,7 @@ namespace Zeldexile.Characters
         public MotionClip RunningJump;
         public MotionClip Vault;
         public MotionClip Kick;
+        public MotionClip Climb;
 
         public float HipsHeight { get; internal set; }
 

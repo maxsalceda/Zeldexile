@@ -18,8 +18,11 @@ namespace Zeldexile.Player
         public bool InteractPressed { get; private set; }
         /// <summary>Cast the selected rune.</summary>
         public bool RunePressed { get; private set; }
-        /// <summary>Draw the bow; in the air this also slows time.</summary>
+        /// <summary>Right button / right trigger held: bow aim (with a bow, after a short hold); in the air this also slows time.</summary>
         public bool BowAimHeld { get; private set; }
+        /// <summary>Right button / right trigger pressed and released this frame: a tap is the heavy sword attack.</summary>
+        public bool HeavyPressed { get; private set; }
+        public bool HeavyReleased { get; private set; }
         /// <summary>Shield up (and target lock while held).</summary>
         public bool GuardHeld { get; private set; }
         public bool LockPressed { get; private set; }
@@ -54,6 +57,7 @@ namespace Zeldexile.Player
             var zoom = 0f;
             bool sprint = false, jump = false, attack = false, throwIt = false, interact = false, rune = false;
             bool bowAim = false, guardDown = false, guardReleased = false, dodge = false, menu = false, crouch = false;
+            bool heavyDown = false, heavyUp = false;
             SkillSlotPressed = -1;
 
             if (kb != null)
@@ -85,6 +89,8 @@ namespace Zeldexile.Player
                 zoom += mouse.scroll.ReadValue().y / 120f;
                 attack |= mouse.leftButton.wasPressedThisFrame;
                 bowAim |= mouse.rightButton.isPressed;
+                heavyDown |= mouse.rightButton.wasPressedThisFrame;
+                heavyUp |= mouse.rightButton.wasReleasedThisFrame;
             }
 
             if (pad != null)
@@ -105,6 +111,8 @@ namespace Zeldexile.Player
                 attack |= pad.buttonWest.wasPressedThisFrame;
                 throwIt |= pad.rightShoulder.wasPressedThisFrame;
                 bowAim |= pad.rightTrigger.isPressed;
+                heavyDown |= pad.rightTrigger.wasPressedThisFrame;
+                heavyUp |= pad.rightTrigger.wasReleasedThisFrame;
                 rune |= pad.leftTrigger.wasPressedThisFrame;
                 guardDown |= pad.leftShoulder.isPressed;
                 guardReleased |= pad.leftShoulder.wasReleasedThisFrame;
@@ -142,7 +150,7 @@ namespace Zeldexile.Player
                 Look = Vector2.zero;
                 Zoom = 0f;
                 Sprint = JumpPressed = AttackPressed = ThrowPressed = InteractPressed = RunePressed = false;
-                BowAimHeld = GuardHeld = LockPressed = DodgePressed = CrouchPressed = false;
+                BowAimHeld = GuardHeld = LockPressed = DodgePressed = CrouchPressed = HeavyPressed = HeavyReleased = false;
                 SkillSlotPressed = -1;
                 return;
             }
@@ -161,6 +169,8 @@ namespace Zeldexile.Player
             InteractPressed = interact;
             RunePressed = rune;
             BowAimHeld = bowAim;
+            HeavyPressed = heavyDown;
+            HeavyReleased = heavyUp;
             GuardHeld = guardHeld;
             LockPressed = lockOn;
             DodgePressed = dodge;

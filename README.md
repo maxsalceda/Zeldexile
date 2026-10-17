@@ -25,8 +25,9 @@ Design completo: [Docs/GDD.md](Docs/GDD.md) e a Bíblia de Design (link no GDD).
 | Pular / planar (no ar) / salto de escalada | Espaço | X / Triângulo |
 | Escalar | andar contra a parede | — |
 | Atacar com a arma | Clique esquerdo | Y / Quadrado |
+| Ataque pesado (combo de espada e escudo) | Botão direito (toque) | RT (toque) |
 | Arremessar a arma | F | RB |
-| Arco (segurar mira; no ar = câmera lenta) + atirar | Botão direito + clique | RT + Y |
+| Arco (segurar para mirar; no ar = câmera lenta) + atirar | Botão direito segurado + clique | RT segurado + Y |
 | Lançar runa / escolher runa | R / 1–4 | LT / Direcional |
 | Travar alvo (toque) / escudo erguido (segurar) | Q | LB |
 | Defesa perfeita | Espaço com o escudo erguido | X com LB |

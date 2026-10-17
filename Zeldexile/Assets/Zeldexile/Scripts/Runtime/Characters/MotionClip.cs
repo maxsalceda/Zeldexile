@@ -50,6 +50,9 @@ namespace Zeldexile.Characters
         /// <summary>Ground speed of the hips at each sample (m/s, hero size), from the clip's root motion.</summary>
         private float[] _hipSpeed;
 
+        /// <summary>How far the hips rise from the first sample to the last (m, hero size): a climb loop's cycle height.</summary>
+        public float VerticalTravel { get; private set; }
+
         /// <summary>Height of the lowest foot above its lowest point in the clip, at each sample (m, hero size).</summary>
         private float[] _feetHeight;
 
@@ -270,10 +273,16 @@ namespace Zeldexile.Characters
             motion.TurnDegrees = slope * count;
             for (var i = 0; i < count; i++) motion._frames[i] = Rebuild(positions[i], bones.ContainsKey("HeadTop_End"));
 
-            // Size: the standing height of the first frame; speed: how fast the planted foot slides back.
+            // Size: the standing height from the bone lengths (the same whatever the pose: a climb or a crouch never
+            // stands up straight), legs plus trunk plus head; speed: how fast the planted foot slides back.
             var first = positions[0];
-            var top = first.ContainsKey("HeadTop_End") ? first["HeadTop_End"].y : first["Head"].y;
-            var height = (top - Mathf.Min(first["LeftToeBase"].y, first["RightToeBase"].y)) * 1.05f;
+            float Len(string a, string b) => first.ContainsKey(a) && first.ContainsKey(b) ? (first[a] - first[b]).magnitude : 0f;
+            // Bone lengths only (no constants: clip units vary): thigh, shin, half the foot, and the pelvis drop.
+            var legs = Len("LeftUpLeg", "LeftLeg") + Len("LeftLeg", "LeftFoot") + Len("LeftFoot", "LeftToeBase") * 0.5f + Len("Hips", "LeftUpLeg") * 0.6f;
+            var trunk = Len("Hips", "Spine") + (first.ContainsKey("Spine1") ? Len("Spine", "Spine1") + Len("Spine1", "Spine2") : 0f)
+                        + Len(first.ContainsKey("Spine2") ? "Spine2" : "Spine", "Neck") + Len("Neck", "Head")
+                        + (first.ContainsKey("HeadTop_End") ? Len("Head", "HeadTop_End") : Len("Neck", "Head"));
+            var height = (legs + trunk) * 0.97f;
             var scale = SkinnedHero.TargetHeight / Mathf.Max(0.01f, height);
             var slides = new List<float>();
             var lowestLeft = float.MaxValue;
@@ -305,6 +314,7 @@ namespace Zeldexile.Characters
             }
 
             motion._hipSpeed[0] = motion._hipSpeed[Mathf.Min(1, count - 1)];
+            motion.VerticalTravel = (positions[count - 1]["Hips"].y - positions[0]["Hips"].y) * scale;
             motion._feetHeight = new float[count];
             motion._hipsHeight = new float[count];
             var lowestFoot = float.MaxValue;
