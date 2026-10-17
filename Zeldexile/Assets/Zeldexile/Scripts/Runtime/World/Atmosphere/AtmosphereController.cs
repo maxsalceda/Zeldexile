@@ -16,6 +16,8 @@ namespace Zeldexile.World.Atmosphere
         public Light Sun;
         [SerializeField] private float startHour = 9f;
         [SerializeField] private float transitionSeconds = 12f;
+        /// <summary>Multiplies every fog distance. Large regions raise it so their far side stays readable.</summary>
+        public float FogDistanceScale = 1f;
 
         public GameClock Clock { get; private set; }
         public WeatherTable Weather { get; private set; }
@@ -180,7 +182,7 @@ namespace Zeldexile.World.Atmosphere
             Shader.SetGlobalColor(HorizonId, new Color(horizon.r, horizon.g, horizon.b, 1f));
             Shader.SetGlobalColor(GroundId, Color.Lerp(horizon, new Color(0.2f, 0.22f, 0.2f), 0.5f));
             Shader.SetGlobalColor(FogColorId, fogColor);
-            Shader.SetGlobalVector(FogParamsId, new Vector4(_fogNear, _fogFar, 0.012f, 0.92f));
+            Shader.SetGlobalVector(FogParamsId, new Vector4(_fogNear * FogDistanceScale, _fogFar * FogDistanceScale, 0.012f / FogDistanceScale, 0.92f));
             Shader.SetGlobalColor(AerialId, new Color(0.45f, 0.58f, 0.82f, Mathf.Lerp(0.55f, 0.2f, overcast)));
             Shader.SetGlobalColor(SunColorId, sunColor);
             Shader.SetGlobalVector(SunDirId, new Vector4(toSun.x, toSun.y, toSun.z, isDay ? 1f : 0f));

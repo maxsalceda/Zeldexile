@@ -13,6 +13,7 @@ namespace Zeldexile.EditorTools
         public static void Build()
         {
             PrototypeSceneBuilder.Build();
+            if (AssetDatabase.LoadAssetAtPath<SceneAsset>(RegionSceneBuilder.ScenePath) == null) RegionSceneBuilder.Build();
 
             PlayerSettings.productName = "Zeldexile";
             PlayerSettings.companyName = "Zeldexile";
@@ -25,7 +26,7 @@ namespace Zeldexile.EditorTools
 
             var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
             {
-                scenes = new[] { PrototypeSceneBuilder.ScenePath, PrototypeSceneBuilder.ShowcasePath },
+                scenes = new[] { PrototypeSceneBuilder.ScenePath, PrototypeSceneBuilder.ShowcasePath, RegionSceneBuilder.ScenePath },
                 locationPathName = Output,
                 target = BuildTarget.StandaloneWindows64,
                 options = BuildOptions.None

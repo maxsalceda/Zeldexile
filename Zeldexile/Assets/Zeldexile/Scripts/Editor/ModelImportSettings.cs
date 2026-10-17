@@ -29,7 +29,8 @@ namespace Zeldexile.EditorTools
             importer.importTangents = ModelImporterTangents.None;
             importer.meshCompression = ModelImporterMeshCompression.Off;
             importer.meshOptimizationFlags = MeshOptimizationFlags.Everything;
-            importer.isReadable = false;
+            // Nature models are merged into instanced meshes at runtime, which needs their vertex data.
+            importer.isReadable = assetPath.StartsWith(ModelsFolder + "/Nature");
             importer.addCollider = false;
         }
 

@@ -26,10 +26,26 @@ namespace Zeldexile.Gameplay
         private Light _sun;
         private AtmosphereController _atmosphere;
 
+        /// <summary>
+        /// Set before Awake (on an inactive object) by worlds that build their own ground, such as the open-world
+        /// regions: only the light, the atmosphere and the player (at SpawnPoint) are built.
+        /// </summary>
+        public bool PlayerOnly;
+        public Vector3 SpawnPoint;
+
+        public PlayerCharacter Player => _player;
+        public AtmosphereController Atmosphere => _atmosphere;
+
         private void Awake()
         {
             _root = new GameObject("Mundo").transform;
             BuildLighting();
+            if (PlayerOnly)
+            {
+                BuildPlayer(SpawnPoint);
+                return;
+            }
+
             BuildTerrain();
             var player = BuildPlayer(OnGround(0f, -2f, 0.1f));
             BuildCamp();

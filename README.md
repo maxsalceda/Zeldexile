@@ -10,6 +10,9 @@ Design completo: [Docs/GDD.md](Docs/GDD.md) e a Bíblia de Design (link no GDD).
 1. Unity Hub → **Add project from disk** → `D:9 - Zeldexile\Zeldexile` (Unity 6000.6.4f1).
 2. Abra `Assets/Zeldexile/Scenes/Prototype.unity` e aperte Play.
    Se a cena sumir, recrie pelo menu **Zeldexile → Recriar cena de protótipo**.
+3. **Mundo aberto**: `Assets/Zeldexile/Scenes/ValeInicial.unity` é a primeira região (1 km², o Vale dos Pomares).
+   Recrie pelo menu **Zeldexile → Recriar cena do Vale Inicial**; no build, `Zeldexile.exe -vale`.
+   Detalhes, medições e como expandir: [Docs/Regiao-Vale-Inicial.md](Docs/Regiao-Vale-Inicial.md).
 
 ## Controles
 | Ação | Teclado/mouse | Controle |
@@ -46,7 +49,10 @@ Zeldexile/Assets/Zeldexile/
                     materiais/culinária, armaduras, clima, regras de dano
   Scripts/Runtime   Player (movimento, câmera, runas, combate, interação), World (química, água, ar quente,
                     mecanismos, objetos interativos), Combat (vida, projéteis, criaturas), Gameplay (ilha, loot), UI (HUD)
-  Scripts/Editor    criação da cena
+  Scripts/Domain/Regions  mundo aberto em C# puro: setores, dados da região, relevo/água/trilhas, distribuição
+  Scripts/Runtime/World/Region  montagem da região: terreno por setor, água, pontes, natureza instanciada, grama
+  Resources/World/Regions  dados das regiões (JSON); vale_inicial.json é o primeiro km²
+  Scripts/Editor    criação das cenas
   Tests             EditMode (domínio) e PlayMode (gancho no mundo)
 ```
 
@@ -63,6 +69,8 @@ Para regenerar os modelos:
 ```
 "E:\Steam\steamapps\common\Blender\blender.exe" -b --factory-startup -P Tools/Blender/build_models.py -- "Zeldexile/Assets/Zeldexile/Resources/Models" "Art/Blender"
 ```
+A natureza do mundo aberto (árvores, rochas, plantas, peças de ponte) vem de `Tools/Blender/build_nature.py`,
+com o mesmo comando trocando o script e a pasta dos `.blend` para `Art/Blender/Natureza`.
 Depois, no Unity: **Zeldexile → Reimportar modelos do Blender**. `Tools/Blender/check_normals.py` acusa faces invertidas num `.blend`.
 
 O teste de Play Mode `VisualPreviewTests` salva prévias em `Zeldexile/Logs/preview-*.png` (ilha, vista geral, lago, portão e folha de poses).

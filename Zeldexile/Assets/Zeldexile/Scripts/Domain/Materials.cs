@@ -74,6 +74,8 @@ namespace Zeldexile.Domain
         {
             // Fruits and vegetables.
             new MaterialDefinition("maca", "Maçã silvestre", MaterialCategory.Fruit, 2, 3),
+            new MaterialDefinition("laranja_vale", "Laranja do vale", MaterialCategory.Fruit, 2, 3),
+            new MaterialDefinition("pera_dourada", "Pera dourada", MaterialCategory.Fruit, 2, 4),
             new MaterialDefinition("melancia", "Melancia gelada", MaterialCategory.Fruit, 2, 4, FoodEffect.Chilly, 1),
             new MaterialDefinition("pimenta", "Pimenta brasa", MaterialCategory.Fruit, 2, 4, FoodEffect.Spicy, 1),
             new MaterialDefinition("fruta_raio", "Fruta-raio", MaterialCategory.Fruit, 2, 4, FoodEffect.Electro, 1),

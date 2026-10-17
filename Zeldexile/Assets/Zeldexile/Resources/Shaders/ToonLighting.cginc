@@ -33,6 +33,12 @@ void ToonSurf (Input IN, inout SurfaceOutput o)
 half4 LightingToon (SurfaceOutput s, half3 lightDir, half3 viewDir, half atten)
 {
     half ndl = dot(s.Normal, lightDir);
+#ifdef UNITY_PASS_FORWARDADD
+    // Extra lights (camp fires, lamps) only add their lit band, faded by distance. Adding the shadow side here
+    // would brighten the whole screen rectangle the light covers.
+    half3 added = s.Albedo * _LightColor0.rgb * smoothstep(-0.02, _BandSoftness, ndl) * atten;
+    return half4(added, s.Alpha);
+#else
     half shadow = smoothstep(0.35, 0.65, atten) * s.Gloss;
     half lit = smoothstep(-0.02, _BandSoftness, ndl) * shadow;
 
@@ -48,6 +54,7 @@ half4 LightingToon (SurfaceOutput s, half3 lightDir, half3 viewDir, half atten)
     c += _RimColor.rgb * _LightColor0.rgb * smoothstep(0.62, 0.62 + _BandSoftness, rim) * lit * _RimColor.a;
 
     return half4(c, s.Alpha);
+#endif
 }
 
 void ToonFinal (Input IN, SurfaceOutput o, inout fixed4 color)

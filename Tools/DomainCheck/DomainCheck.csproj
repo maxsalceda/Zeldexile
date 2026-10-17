@@ -10,5 +10,6 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="..\..\Zeldexile\Assets\Zeldexile\Scripts\Domain\*.cs" />
+    <Compile Include="..\..\Zeldexile\Assets\Zeldexile\Scripts\Domain\Regions\*.cs" />
   </ItemGroup>
 </Project>

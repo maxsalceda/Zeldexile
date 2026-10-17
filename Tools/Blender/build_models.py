@@ -620,4 +620,5 @@ def main():
     print(f"FBX: {MODELS_DIR}\nBlend: {BLEND_DIR}")
 
 
-main()
+if __name__ == "__main__":
+    main()

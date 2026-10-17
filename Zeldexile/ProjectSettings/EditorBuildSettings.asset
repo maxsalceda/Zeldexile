@@ -11,4 +11,7 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Zeldexile/Scenes/Showcase.unity
     guid: e121f5d03f55c7844a05a827fd03f1eb
+  - enabled: 1
+    path: Assets/Zeldexile/Scenes/ValeInicial.unity
+    guid: 736a8f26911db2d4087fb196ee2cfaf6
   m_configObjects: {}

@@ -1,0 +1,370 @@
+{
+  "id": "vale_inicial",
+  "name": "Vale dos Pomares",
+  "seed": 7177,
+  "originX": 0,
+  "originZ": 0,
+  "sizeU": 1000,
+  "sizeV": 1000,
+  "lakeLevel": 20,
+  "cellSize": 2.5,
+  "relief": {
+    "baseHeight": 8,
+    "rollAmplitude": 4,
+    "rollWavelength": 280,
+    "undulationAmplitude": 1.5,
+    "undulationWavelength": 70,
+    "detailAmplitude": 0.3,
+    "detailWavelength": 9,
+    "maxHeight": 130,
+    "edgeBand": 60
+  },
+  "hills": [
+    { "id": "colinas_norte", "u": 500, "v": 890, "radius": 250, "height": 62, "stretch": 1.7, "angle": 0, "sharpness": 0.9 },
+    { "id": "pico_norte", "u": 525, "v": 900, "radius": 120, "height": 40, "sharpness": 1.1 },
+    { "id": "colina_noroeste", "u": 290, "v": 940, "radius": 170, "height": 30 },
+    { "id": "planalto_oeste", "u": 120, "v": 640, "radius": 230, "height": 36, "stretch": 1.25, "angle": 85 },
+    { "id": "colina_sudoeste", "u": 140, "v": 170, "radius": 170, "height": 18 },
+    { "id": "colina_leste", "u": 1000, "v": 560, "radius": 150, "height": 34, "stretch": 1.6, "angle": 90 },
+    { "id": "colina_nordeste", "u": 870, "v": 900, "radius": 150, "height": 40 },
+    { "id": "elevacao_sul", "u": 520, "v": 10, "radius": 200, "height": 8, "stretch": 1.6, "angle": 0 },
+    { "id": "colina_pomar", "u": 300, "v": 300, "radius": 130, "height": 9 },
+    { "id": "colina_arvore_ancia", "u": 365, "v": 470, "radius": 70, "height": 8 },
+    { "id": "colina_sudeste", "u": 760, "v": 110, "radius": 170, "height": 9, "stretch": 1.3, "angle": 10 },
+    { "id": "sela_norte", "u": 420, "v": 1040, "radius": 150, "height": 16 },
+    { "id": "baixada_sudeste", "u": 985, "v": 175, "radius": 110, "height": -3 }
+  ],
+  "plateaus": [
+    { "id": "mesa_norte", "u": 560, "v": 918, "ru": 52, "rv": 36, "angle": 15, "top": 120, "falloff": 10, "warp": 6, "ledges": 2 },
+    { "id": "mesa_nordeste", "u": 875, "v": 885, "ru": 68, "rv": 48, "angle": -20, "top": 76, "falloff": 9, "warp": 7, "ledges": 2 },
+    { "id": "pedra_do_vigia", "u": 575, "v": 700, "ru": 15, "rv": 11, "angle": 30, "top": 36, "falloff": 5, "warp": 2.5, "ledges": 1 },
+    { "id": "afloramento_oeste", "u": 85, "v": 520, "ru": 30, "rv": 20, "angle": 60, "top": 46, "falloff": 6, "warp": 3, "ledges": 1 }
+  ],
+  "lake": {
+    "id": "lago_principal",
+    "name": "Lago Espelho",
+    "maxDepth": 7,
+    "shelfWidth": 14,
+    "shelfDepth": 1.1,
+    "shoreBand": 60,
+    "shoreWarp": 3,
+    "shore": [
+      { "u": 618, "v": 478 }, { "u": 636, "v": 432 }, { "u": 662, "v": 400 }, { "u": 652, "v": 362 },
+      { "u": 628, "v": 332 }, { "u": 640, "v": 300 }, { "u": 680, "v": 286 }, { "u": 722, "v": 298 },
+      { "u": 760, "v": 286 }, { "u": 805, "v": 280 }, { "u": 850, "v": 290 }, { "u": 886, "v": 300 },
+      { "u": 905, "v": 336 }, { "u": 898, "v": 382 }, { "u": 910, "v": 432 }, { "u": 902, "v": 490 },
+      { "u": 884, "v": 540 }, { "u": 900, "v": 600 }, { "u": 895, "v": 660 }, { "u": 870, "v": 712 },
+      { "u": 830, "v": 745 }, { "u": 780, "v": 750 }, { "u": 735, "v": 728 }, { "u": 700, "v": 700 },
+      { "u": 676, "v": 650 }, { "u": 720, "v": 622 }, { "u": 772, "v": 612 }, { "u": 792, "v": 600 },
+      { "u": 770, "v": 586 }, { "u": 718, "v": 578 }, { "u": 682, "v": 556 }, { "u": 660, "v": 520 },
+      { "u": 640, "v": 500 }
+    ],
+    "zones": [
+      { "kind": "praia", "u": 765, "v": 284, "radius": 95 },
+      { "kind": "praia", "u": 636, "v": 322, "radius": 45 },
+      { "kind": "praia", "u": 700, "v": 288, "radius": 50 },
+      { "kind": "rochosa", "u": 912, "v": 450, "radius": 120 },
+      { "kind": "rochosa", "u": 890, "v": 640, "radius": 70 },
+      { "kind": "rochosa", "u": 868, "v": 728, "radius": 55 },
+      { "kind": "arborizada", "u": 770, "v": 752, "radius": 80 },
+      { "kind": "arborizada", "u": 715, "v": 640, "radius": 70 },
+      { "kind": "juncos", "u": 622, "v": 480, "radius": 38 },
+      { "kind": "juncos", "u": 690, "v": 560, "radius": 40 },
+      { "kind": "juncos", "u": 884, "v": 302, "radius": 32 }
+    ]
+  },
+  "streams": [
+    {
+      "id": "riacho_principal",
+      "name": "Riacho das Pedras",
+      "kind": "riacho",
+      "bankWidth": 5,
+      "incision": 1.1,
+      "cascadeStep": 1.3,
+      "leavesLake": false,
+      "feedsLake": true,
+      "mouth": "lago",
+      "points": [
+        { "u": 262, "v": 872, "width": 2.6, "depth": 0.35, "fall": 0 },
+        { "u": 276, "v": 842, "width": 3.2, "depth": 0.4, "fall": 0 },
+        { "u": 296, "v": 806, "width": 3.6, "depth": 0.45, "fall": 0 },
+        { "u": 300, "v": 793, "width": 4.5, "depth": 0.5, "fall": 0 },
+        { "u": 301.5, "v": 789, "width": 4.5, "depth": 0.5, "fall": 4 },
+        { "u": 304, "v": 780, "width": 7.5, "depth": 0.9, "fall": 0 },
+        { "u": 307, "v": 760, "width": 4.2, "depth": 0.45, "fall": 0 },
+        { "u": 312, "v": 732, "width": 4.6, "depth": 0.5, "fall": 0 },
+        { "u": 320, "v": 722, "width": 4.8, "depth": 0.5, "fall": 2.5 },
+        { "u": 328, "v": 714, "width": 7.5, "depth": 0.9, "fall": 0 },
+        { "u": 352, "v": 694, "width": 5, "depth": 0.5, "fall": 0 },
+        { "u": 382, "v": 672, "width": 5.2, "depth": 0.5, "fall": 0 },
+        { "u": 420, "v": 650, "width": 5.5, "depth": 0.5, "fall": 0 },
+        { "u": 436, "v": 628, "width": 5.5, "depth": 0.5, "fall": 0 },
+        { "u": 439, "v": 623, "width": 5.5, "depth": 0.5, "fall": 0 },
+        { "u": 446, "v": 610, "width": 8.5, "depth": 0.9, "fall": 0 },
+        { "u": 462, "v": 575, "width": 6, "depth": 0.55, "fall": 0 },
+        { "u": 480, "v": 540, "width": 6.2, "depth": 0.6, "fall": 0 },
+        { "u": 510, "v": 520, "width": 6.5, "depth": 0.6, "fall": 0 },
+        { "u": 550, "v": 500, "width": 7, "depth": 0.6, "fall": 0 },
+        { "u": 590, "v": 488, "width": 7.5, "depth": 0.6, "fall": 0 },
+        { "u": 612, "v": 481, "width": 8, "depth": 0.7, "fall": 0 },
+        { "u": 640, "v": 474, "width": 9, "depth": 1.2, "fall": 0 }
+      ]
+    },
+    {
+      "id": "riacho_do_bosque",
+      "name": "Riacho do Bosque",
+      "kind": "riacho",
+      "bankWidth": 4,
+      "incision": 1.0,
+      "cascadeStep": 1.1,
+      "leavesLake": false,
+      "feedsLake": false,
+      "mouth": "riacho_principal",
+      "points": [
+        { "u": 108, "v": 724, "width": 2.2, "depth": 0.3, "fall": 0 },
+        { "u": 150, "v": 708, "width": 2.6, "depth": 0.35, "fall": 0 },
+        { "u": 196, "v": 706, "width": 2.8, "depth": 0.35, "fall": 0 },
+        { "u": 240, "v": 714, "width": 3.0, "depth": 0.4, "fall": 0 },
+        { "u": 284, "v": 724, "width": 3.2, "depth": 0.4, "fall": 0 },
+        { "u": 312, "v": 732, "width": 4.6, "depth": 0.5, "fall": 0 }
+      ]
+    },
+    {
+      "id": "rio_saida",
+      "name": "Rio da Saída",
+      "kind": "rio",
+      "bankWidth": 6,
+      "incision": 1.4,
+      "cascadeStep": 1.2,
+      "leavesLake": true,
+      "feedsLake": false,
+      "mouth": "leste",
+      "points": [
+        { "u": 868, "v": 326, "width": 10, "depth": 1.4, "fall": 0 },
+        { "u": 896, "v": 296, "width": 8, "depth": 1.0, "fall": 0 },
+        { "u": 920, "v": 266, "width": 7.5, "depth": 0.75, "fall": 0 },
+        { "u": 940, "v": 240, "width": 7, "depth": 0.7, "fall": 0 },
+        { "u": 946, "v": 233, "width": 7, "depth": 0.7, "fall": 2.4 },
+        { "u": 956, "v": 222, "width": 10, "depth": 1.0, "fall": 0 },
+        { "u": 980, "v": 196, "width": 8, "depth": 0.7, "fall": 0 },
+        { "u": 1008, "v": 168, "width": 8, "depth": 0.7, "fall": 0 }
+      ]
+    }
+  ],
+  "paths": [
+    {
+      "id": "circuito_principal",
+      "name": "Circuito do Vale",
+      "kind": "principal",
+      "width": 4,
+      "loop": true,
+      "maxGrade": 0.17,
+      "points": [
+        { "u": 500, "v": 112 }, { "u": 478, "v": 150 }, { "u": 440, "v": 188 }, { "u": 395, "v": 220 },
+        { "u": 352, "v": 258 }, { "u": 352, "v": 306 }, { "u": 384, "v": 352 }, { "u": 420, "v": 394 },
+        { "u": 446, "v": 434 }, { "u": 458, "v": 474 }, { "u": 466, "v": 512 }, { "u": 472.8, "v": 534 },
+        { "u": 487.2, "v": 546 }, { "u": 506, "v": 580 }, { "u": 522, "v": 622 }, { "u": 536, "v": 656 },
+        { "u": 500, "v": 690 }, { "u": 452, "v": 712 }, { "u": 420, "v": 736 }, { "u": 468, "v": 754 },
+        { "u": 540, "v": 772 }, { "u": 600, "v": 780 }, { "u": 660, "v": 786 }, { "u": 700, "v": 792 },
+        { "u": 745, "v": 800 }, { "u": 790, "v": 800 }, { "u": 830, "v": 794 }, { "u": 865, "v": 784 },
+        { "u": 895, "v": 762 }, { "u": 920, "v": 730 }, { "u": 934, "v": 690 }, { "u": 938, "v": 640 },
+        { "u": 938, "v": 580 }, { "u": 932, "v": 520 }, { "u": 936, "v": 460 }, { "u": 940, "v": 400 },
+        { "u": 936, "v": 340 }, { "u": 933, "v": 300 }, { "u": 931, "v": 272 }, { "u": 911, "v": 254 },
+        { "u": 885, "v": 244 }, { "u": 845, "v": 246 }, { "u": 800, "v": 252 }, { "u": 750, "v": 254 },
+        { "u": 700, "v": 250 }, { "u": 650, "v": 222 }, { "u": 600, "v": 186 }, { "u": 556, "v": 150 },
+        { "u": 522, "v": 124 }
+      ]
+    },
+    {
+      "id": "trilha_do_bosque",
+      "name": "Trilha do Bosque",
+      "kind": "secundaria",
+      "width": 2.6,
+      "loop": false,
+      "maxGrade": 0.2,
+      "points": [
+        { "u": 352, "v": 262 }, { "u": 300, "v": 288 }, { "u": 250, "v": 320 }, { "u": 205, "v": 372 },
+        { "u": 168, "v": 432 }, { "u": 150, "v": 500 }, { "u": 150, "v": 560 }, { "u": 168, "v": 610 },
+        { "u": 200, "v": 650 }, { "u": 240, "v": 676 }, { "u": 290, "v": 690 }, { "u": 328, "v": 684 },
+        { "u": 341.5, "v": 686.5 }, { "u": 357, "v": 703 }, { "u": 392, "v": 712 }, { "u": 430, "v": 716 },
+        { "u": 452, "v": 712 }
+      ]
+    },
+    {
+      "id": "trilha_oeste",
+      "name": "Trilha do Oeste",
+      "kind": "secundaria",
+      "width": 2.4,
+      "loop": false,
+      "maxGrade": 0.2,
+      "points": [
+        { "u": 150, "v": 540 }, { "u": 110, "v": 570 }, { "u": 66, "v": 600 }, { "u": 30, "v": 622 },
+        { "u": 0, "v": 634 }
+      ]
+    },
+    {
+      "id": "trilha_do_pico",
+      "name": "Trilha do Pico",
+      "kind": "secundaria",
+      "width": 2.4,
+      "loop": false,
+      "maxGrade": 0.2,
+      "points": [
+        { "u": 540, "v": 772 }, { "u": 470, "v": 790 }, { "u": 430, "v": 808 }, { "u": 500, "v": 822 },
+        { "u": 548, "v": 832 }, { "u": 478, "v": 848 }, { "u": 552, "v": 857 }, { "u": 500, "v": 874 },
+        { "u": 512, "v": 890 }
+      ]
+    },
+    {
+      "id": "passo_norte",
+      "name": "Passo do Norte",
+      "kind": "secundaria",
+      "width": 2.6,
+      "loop": false,
+      "maxGrade": 0.2,
+      "points": [
+        { "u": 478, "v": 848 }, { "u": 440, "v": 878 }, { "u": 420, "v": 920 }, { "u": 410, "v": 960 },
+        { "u": 408, "v": 1000 }
+      ]
+    },
+    {
+      "id": "trilha_da_margem_oeste",
+      "name": "Trilha da Margem",
+      "kind": "secundaria",
+      "width": 2.6,
+      "loop": false,
+      "maxGrade": 0.2,
+      "points": [
+        { "u": 536, "v": 656 }, { "u": 580, "v": 664 }, { "u": 624, "v": 652 }, { "u": 656, "v": 622 },
+        { "u": 662, "v": 600 }, { "u": 648, "v": 560 }, { "u": 626, "v": 524 }, { "u": 599.5, "v": 501 },
+        { "u": 594.5, "v": 478 }, { "u": 598, "v": 450 }, { "u": 612, "v": 420 }, { "u": 618, "v": 396 },
+        { "u": 612, "v": 360 }, { "u": 600, "v": 320 }, { "u": 618, "v": 280 }, { "u": 650, "v": 262 },
+        { "u": 700, "v": 250 }
+      ]
+    },
+    {
+      "id": "acesso_peninsula",
+      "name": "Caminho da Península",
+      "kind": "acesso",
+      "width": 2.2,
+      "loop": false,
+      "maxGrade": 0.2,
+      "points": [
+        { "u": 662, "v": 600 }, { "u": 700, "v": 598 }, { "u": 740, "v": 597 }, { "u": 772, "v": 598 }
+      ]
+    },
+    {
+      "id": "acesso_cachoeira",
+      "name": "Acesso à Cachoeira",
+      "kind": "acesso",
+      "width": 2,
+      "loop": false,
+      "maxGrade": 0.22,
+      "points": [
+        { "u": 290, "v": 690 }, { "u": 284, "v": 720 }, { "u": 288, "v": 752 }, { "u": 290, "v": 778 }
+      ]
+    },
+    {
+      "id": "acesso_arvore_ancia",
+      "name": "Subida da Árvore Anciã",
+      "kind": "acesso",
+      "width": 2,
+      "loop": false,
+      "maxGrade": 0.2,
+      "points": [
+        { "u": 420, "v": 394 }, { "u": 395, "v": 420 }, { "u": 376, "v": 452 }, { "u": 368, "v": 466 }
+      ]
+    },
+    {
+      "id": "trilha_leste",
+      "name": "Trilha da Costa Leste",
+      "kind": "secundaria",
+      "width": 2.8,
+      "loop": false,
+      "maxGrade": 0.2,
+      "points": [
+        { "u": 938, "v": 620 }, { "u": 966, "v": 626 }, { "u": 1000, "v": 630 }
+      ]
+    }
+  ],
+  "bridges": [
+    { "id": "ponte_central", "name": "Ponte Central", "u0": 472.8, "v0": 534.0, "u1": 487.2, "v1": 546.0, "width": 3.4, "clearance": 1.2 },
+    { "id": "ponte_do_bosque", "name": "Ponte do Bosque", "u0": 341.5, "v0": 686.5, "u1": 357.0, "v1": 703.0, "width": 2.8, "clearance": 1.0 },
+    { "id": "ponte_da_foz", "name": "Ponte da Foz", "u0": 594.5, "v0": 478.0, "u1": 599.5, "v1": 501.0, "width": 3.0, "clearance": 1.0 },
+    { "id": "ponte_da_saida", "name": "Ponte da Saída", "u0": 931.0, "v0": 272.0, "u1": 911.0, "v1": 254.0, "width": 3.4, "clearance": 1.2 }
+  ],
+  "areas": [
+    { "id": "bosque_oeste", "kind": "bosque", "u": 160, "v": 615, "ru": 160, "rv": 220, "falloff": 0.4 },
+    { "id": "bosque_encosta_norte", "kind": "bosque", "u": 350, "v": 860, "ru": 130, "rv": 80, "strength": 0.9 },
+    { "id": "bosque_margem_norte", "kind": "bosque", "u": 790, "v": 815, "ru": 115, "rv": 58, "strength": 0.95 },
+    { "id": "bosque_colina_leste", "kind": "bosque", "u": 972, "v": 730, "ru": 48, "rv": 120, "strength": 0.9 },
+    { "id": "bosque_sudoeste", "kind": "bosque", "u": 55, "v": 230, "ru": 85, "rv": 140, "strength": 0.9 },
+    { "id": "ralo_oeste", "kind": "bosque_ralo", "u": 300, "v": 610, "ru": 95, "rv": 150 },
+    { "id": "ralo_encosta", "kind": "bosque_ralo", "u": 425, "v": 770, "ru": 95, "rv": 55 },
+    { "id": "ralo_noroeste", "kind": "bosque_ralo", "u": 140, "v": 900, "ru": 140, "rv": 100 },
+    { "id": "ralo_leste", "kind": "bosque_ralo", "u": 965, "v": 410, "ru": 42, "rv": 110, "strength": 0.8 },
+    { "id": "ralo_norte", "kind": "bosque_ralo", "u": 690, "v": 900, "ru": 90, "rv": 70, "strength": 0.8 },
+    { "id": "pomar_meridional_laranjas", "kind": "pomar_laranja", "u": 285, "v": 240, "ru": 165, "rv": 100, "angle": 20, "falloff": 0.35 },
+    { "id": "pomar_meridional_peras", "kind": "pomar_pera", "u": 420, "v": 300, "ru": 85, "rv": 68, "angle": -10, "falloff": 0.35 },
+    { "id": "pomar_do_lago", "kind": "pomar_pera", "u": 640, "v": 230, "ru": 110, "rv": 50, "angle": 12, "falloff": 0.35 },
+    { "id": "pomar_da_enseada", "kind": "pomar_laranja", "u": 585, "v": 380, "ru": 48, "rv": 72, "falloff": 0.35 },
+    { "id": "pomar_da_encosta", "kind": "pomar_laranja", "u": 565, "v": 610, "ru": 62, "rv": 46, "falloff": 0.35 },
+    { "id": "pomar_central_leste", "kind": "pomar_pera", "u": 545, "v": 300, "ru": 62, "rv": 72, "falloff": 0.35 },
+    { "id": "pomar_da_colina", "kind": "pomar_laranja", "u": 690, "v": 830, "ru": 72, "rv": 40, "falloff": 0.35 },
+    { "id": "pomar_entrada", "kind": "pomar_pera", "u": 410, "v": 140, "ru": 72, "rv": 46, "falloff": 0.35 },
+    { "id": "pomar_sudeste", "kind": "pomar_pera", "u": 820, "v": 170, "ru": 130, "rv": 70, "angle": -5, "falloff": 0.35 },
+    { "id": "pomar_oeste", "kind": "pomar_laranja", "u": 215, "v": 425, "ru": 75, "rv": 60, "falloff": 0.35 },
+    { "id": "prado_central", "kind": "prado_florido", "u": 460, "v": 430, "ru": 85, "rv": 60 },
+    { "id": "prado_oeste", "kind": "prado_florido", "u": 285, "v": 430, "ru": 45, "rv": 40 },
+    { "id": "prado_sul", "kind": "prado_florido", "u": 690, "v": 165, "ru": 60, "rv": 36 },
+    { "id": "prado_encosta", "kind": "prado_florido", "u": 520, "v": 720, "ru": 50, "rv": 34, "strength": 0.7 },
+    { "id": "rochas_encosta_norte", "kind": "rochedo", "u": 560, "v": 935, "ru": 210, "rv": 72 },
+    { "id": "rochas_colina_nordeste", "kind": "rochedo", "u": 935, "v": 860, "ru": 70, "rv": 60 },
+    { "id": "rochas_sudoeste", "kind": "rochedo", "u": 60, "v": 140, "ru": 55, "rv": 42 },
+    { "id": "rochas_margem_leste", "kind": "rochedo", "u": 922, "v": 450, "ru": 26, "rv": 150 },
+    { "id": "rochas_ravina", "kind": "rochedo", "u": 950, "v": 228, "ru": 52, "rv": 40, "strength": 0.9 },
+    { "id": "rochas_mesa_norte", "kind": "rochedo", "u": 560, "v": 915, "ru": 95, "rv": 72 },
+    { "id": "rochas_mesa_nordeste", "kind": "rochedo", "u": 875, "v": 880, "ru": 110, "rv": 88 },
+    { "id": "rochas_leste", "kind": "rochedo", "u": 968, "v": 520, "ru": 52, "rv": 150, "strength": 0.9 },
+    { "id": "rochas_noroeste", "kind": "rochedo", "u": 290, "v": 955, "ru": 90, "rv": 50, "strength": 0.8 },
+    { "id": "rochas_oeste", "kind": "rochedo", "u": 85, "v": 520, "ru": 55, "rv": 44 },
+    { "id": "rochas_cachoeira", "kind": "rochedo", "u": 300, "v": 788, "ru": 34, "rv": 28 },
+    { "id": "rochas_vigia", "kind": "rochedo", "u": 575, "v": 700, "ru": 32, "rv": 27 },
+    { "id": "clareira_entrada", "kind": "clareira", "u": 515, "v": 135, "ru": 42, "rv": 32 },
+    { "id": "clareira_do_bosque", "kind": "clareira", "u": 172, "v": 590, "ru": 30, "rv": 26 },
+    { "id": "clareira_ancia", "kind": "clareira", "u": 365, "v": 470, "ru": 26, "rv": 26 }
+  ],
+  "pois": [
+    { "id": "mirante_do_vale", "name": "Mirante do Vale", "kind": "mirante", "u": 540, "v": 772, "note": "Patamar na encosta norte com vista para o lago e o vale" },
+    { "id": "mirante_do_pico", "name": "Mirante do Pico", "kind": "mirante", "u": 512, "v": 890, "note": "Topo da colina norte, ao pé da Mesa Norte" },
+    { "id": "arvore_ancia", "name": "Árvore Anciã", "kind": "arvore_ancia", "u": 365, "v": 470, "note": "Laranjeira de copa excepcional sobre o outeiro do prado" },
+    { "id": "clareira_do_bosque", "name": "Clareira do Bosque", "kind": "clareira", "u": 172, "v": 590, "note": "Clareira cercada de árvores no meio do bosque ocidental" },
+    { "id": "enseada", "name": "Enseada Rasa", "kind": "enseada", "u": 632, "v": 326, "note": "Pequena enseada de areia e pedras no sudoeste do lago" },
+    { "id": "ponte_central", "name": "Ponte Central", "kind": "ponte", "u": 480, "v": 540, "note": "Travessia principal do riacho" },
+    { "id": "cachoeira", "name": "Cachoeira do Riacho", "kind": "cachoeira", "u": 301, "v": 790, "note": "Queda de 4 m com poço, ao pé da encosta" },
+    { "id": "pedra_do_vigia", "name": "Pedra do Vigia", "kind": "rocha", "u": 575, "v": 700, "note": "Torre de calcário entre o riacho e o lago" },
+    { "id": "raizes_do_bosque", "name": "Raízes do Riacho do Bosque", "kind": "raizes", "u": 196, "v": 712, "note": "Barranco com raízes expostas sobre o riacho do bosque" },
+    { "id": "peninsula", "name": "Ponta da Península", "kind": "peninsula", "u": 782, "v": 599, "note": "Ponta de terra arborizada dentro do lago" },
+    { "id": "prado_das_flores", "name": "Prado das Flores", "kind": "prado", "u": 470, "v": 420, "note": "Prado central de flores brancas e amarelas" },
+    { "id": "praia_do_sul", "name": "Praia do Sul", "kind": "praia", "u": 765, "v": 278, "note": "Margem baixa de areia e seixos" }
+  ],
+  "connections": [
+    { "id": "passo_norte", "name": "Passo do Norte", "edge": "norte", "u": 408, "v": 1000, "direction": 90, "width": 2.6, "terrain": "sela entre colinas, encosta suave", "vegetation": "bosque ralo e campo alto", "material": "trilha de terra e pedras", "water": "nenhum", "restrictions": "manter a sela abaixo de 80 m e continuar a trilha para o norte" },
+    { "id": "trilha_oeste", "name": "Trilha do Oeste", "edge": "oeste", "u": 0, "v": 634, "direction": 180, "width": 2.4, "terrain": "planalto ondulado", "vegetation": "bosque denso", "material": "trilha de terra com raízes", "water": "nenhum", "restrictions": "bosque deve continuar com a mesma densidade por 60 m" },
+    { "id": "rio_saida", "name": "Rio da Saída", "edge": "leste", "u": 1000, "v": 176, "direction": -45, "width": 8, "terrain": "ravina baixa", "vegetation": "juncos e bosque ralo", "material": "leito de seixos e calcário", "water": "rio de 8 m, superfície 3,4 m abaixo do lago na borda, descendo", "restrictions": "o vizinho deve continuar descendo o leito, sem represas" },
+    { "id": "costa_leste", "name": "Trilha da Costa Leste", "edge": "leste", "u": 1000, "v": 630, "direction": 0, "width": 2.8, "terrain": "encosta média sobre o lago", "vegetation": "bosque ralo e rochas", "material": "trilha de terra", "water": "nenhum", "restrictions": "a colina leste continua e a trilha segue em patamar" }
+  ],
+  "spawn": { "u": 503, "v": 116, "yaw": -12 },
+  "shots": [
+    { "id": "entrada", "name": "Entrada", "u": 500, "v": 104, "above": 2.4, "yaw": -12, "pitch": 4, "fov": 58 },
+    { "id": "vale_amplo", "name": "Vista ampla do vale", "u": 492, "v": 772, "above": 6, "yaw": 150, "pitch": 9, "fov": 60 },
+    { "id": "pomar_lago", "name": "Pomar junto ao lago", "u": 600, "v": 214, "above": 2.2, "yaw": 50, "pitch": 3, "fov": 58 },
+    { "id": "ponte_riacho", "name": "Ponte e riacho", "u": 462, "v": 556, "above": 2.6, "yaw": 125, "pitch": 6, "fov": 56 },
+    { "id": "bosque", "name": "Bosque ocidental", "u": 164, "v": 520, "above": 2.0, "yaw": 15, "pitch": 3, "fov": 58 },
+    { "id": "margem_rasa", "name": "Margem rasa", "u": 742, "v": 268, "above": 1.8, "yaw": 20, "pitch": 2, "fov": 58 },
+    { "id": "mirante", "name": "Mirante do Pico", "u": 506, "v": 884, "above": 2.2, "yaw": 150, "pitch": 12, "fov": 60 },
+    { "id": "borda", "name": "Borda leste (expansão)", "u": 960, "v": 610, "above": 2.2, "yaw": 85, "pitch": 4, "fov": 58 },
+    { "id": "cachoeira", "name": "Cachoeira", "u": 312, "v": 760, "above": 1.8, "yaw": -20, "pitch": 6, "fov": 56 },
+    { "id": "peninsula", "name": "Península", "u": 700, "v": 600, "above": 2.0, "yaw": 90, "pitch": 3, "fov": 58 }
+  ]
+}

@@ -96,7 +96,7 @@ namespace Zeldexile.World.Terrain
         }
 
         /// <summary>A clump of thin triangular blades. uv.y is 0 at the root and 1 at the tip (drives sway and color).</summary>
-        private static Mesh BuildClump(int blades, int seed)
+        public static Mesh BuildClump(int blades, int seed)
         {
             var random = new System.Random(seed + 77);
             var vertices = new List<Vector3>();

@@ -27,6 +27,7 @@ namespace Zeldexile.EditorTools
                 new EditorBuildSettingsScene(ScenePath, true),
                 new EditorBuildSettingsScene(ShowcasePath, true)
             };
+            RegionSceneBuilder.AddToBuild();
             AssetDatabase.SaveAssets();
             Debug.Log($"Zeldexile: cenas salvas em {ScenePath} e {ShowcasePath}");
         }

@@ -10,12 +10,13 @@ namespace Zeldexile.Gameplay
     /// </summary>
     public sealed class BuildCapture : MonoBehaviour
     {
-        /// <summary>"Zeldexile.exe -vitrine" opens the hero showcase instead of the island.</summary>
+        /// <summary>"Zeldexile.exe -vitrine" opens the hero showcase instead of the island; "-vale" the first open-world region.</summary>
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void OpenShowcase()
         {
-            if (Array.IndexOf(Environment.GetCommandLineArgs(), "-vitrine") < 0) return;
-            UnityEngine.SceneManagement.SceneManager.LoadScene("Showcase");
+            var args = Environment.GetCommandLineArgs();
+            if (Array.IndexOf(args, "-vitrine") >= 0) UnityEngine.SceneManagement.SceneManager.LoadScene("Showcase");
+            else if (Array.IndexOf(args, "-vale") >= 0) UnityEngine.SceneManagement.SceneManager.LoadScene("ValeInicial");
         }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
