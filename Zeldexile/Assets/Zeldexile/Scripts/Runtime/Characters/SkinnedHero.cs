@@ -138,7 +138,7 @@ namespace Zeldexile.Characters
             rig.FindContacts(0f);
             rig.Walk = MotionClip.Load(style.WalkClip);
             rig.Run = MotionClip.Load(style.RunClip);
-            rig.Slash = MotionClip.Load(style.SlashClip);
+            rig.Slash = MotionClip.Load(style.SlashClip, 0.35f);
             rig.StartWalk = MotionClip.Load(style.StartWalkClip);
             rig.StopWalk = MotionClip.Load(style.StopWalkClip);
             rig.TurnLeft = MotionClip.Load(style.TurnLeftClip);
@@ -147,7 +147,7 @@ namespace Zeldexile.Characters
             rig.Jump = MotionClip.Load(style.JumpClip);
             rig.RunningJump = MotionClip.Load(style.RunningJumpClip);
             rig.Vault = MotionClip.Load(style.VaultClip);
-            rig.Kick = MotionClip.Load(style.KickClip);
+            rig.Kick = MotionClip.Load(style.KickClip, 0.35f);
             rig.Climb = MotionClip.Load(style.ClimbClip);
             return rig;
         }

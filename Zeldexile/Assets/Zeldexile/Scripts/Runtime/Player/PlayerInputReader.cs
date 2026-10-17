@@ -42,6 +42,10 @@ namespace Zeldexile.Player
         /// <summary>Build checks (BuildCapture "-zxwalk"): a stick held by script instead of the devices.</summary>
         public static Vector2? ScriptedMove;
         public static bool ScriptedSprint;
+        /// <summary>One-frame scripted right-button press and release (consumed when read).</summary>
+        public static bool ScriptedHeavyPress, ScriptedHeavyRelease;
+        /// <summary>Scripted camera look, added every frame while set.</summary>
+        public static Vector2 ScriptedLook;
 
         private float _guardHeldSince = -1f;
         private bool _guardTapConsumed;
@@ -158,6 +162,10 @@ namespace Zeldexile.Player
             CrouchPressed = crouch;
             if (ScriptedMove.HasValue) move = ScriptedMove.Value;
             sprint |= ScriptedSprint;
+            look += ScriptedLook;
+            heavyDown |= ScriptedHeavyPress;
+            heavyUp |= ScriptedHeavyRelease;
+            ScriptedHeavyPress = ScriptedHeavyRelease = false;
 
             Move = Vector2.ClampMagnitude(move, 1f);
             Look = look;

@@ -138,8 +138,13 @@ namespace Zeldexile.Characters
             };
         }
 
-        /// <summary>The clip "Resources/Models/Skinned/Animacoes/&lt;name&gt;", sampled once; null when missing.</summary>
-        public static MotionClip Load(string name)
+        /// <summary>
+        /// The clip "Resources/Models/Skinned/Animacoes/&lt;name&gt;", sampled once; null when missing.
+        /// <paramref name="keepHeading"/> is how much of the clip's own body turning (beyond its overall drift) is kept
+        /// as pelvis rotation: 1 for gaits, which sway naturally; less for strikes, whose lunges and turns were
+        /// captured with the whole body moving and would spin a hero who stands facing his target.
+        /// </summary>
+        public static MotionClip Load(string name, float keepHeading = 1f)
         {
             if (string.IsNullOrEmpty(name)) return null;
             if (Cache.TryGetValue(name, out var cached)) return cached;
@@ -149,7 +154,7 @@ namespace Zeldexile.Characters
             AnimationClip clip = null;
             foreach (var c in Resources.LoadAll<AnimationClip>(path))
                 if (!c.name.StartsWith("__preview__") && (clip == null || c.length > clip.length)) clip = c;
-            if (prefab != null && clip != null && clip.length > 0.1f) result = Sample(prefab, clip);
+            if (prefab != null && clip != null && clip.length > 0.1f) result = Sample(prefab, clip, keepHeading);
             Cache[name] = result;
             return result;
         }
@@ -163,7 +168,7 @@ namespace Zeldexile.Characters
             return CharacterAnimator.Mix(_frames[i], _frames[(i + 1) % _frames.Length], f - Mathf.Floor(f));
         }
 
-        private static MotionClip Sample(GameObject prefab, AnimationClip clip)
+        private static MotionClip Sample(GameObject prefab, AnimationClip clip, float keepHeading)
         {
             var go = Object.Instantiate(prefab);
             go.name = "Amostra de " + clip.name;
@@ -263,7 +268,9 @@ namespace Zeldexile.Characters
             var slope = varT > 0f ? cov / varT : 0f;
             for (var i = 0; i < count; i++)
             {
-                var trend = Quaternion.AngleAxis(-(meanH + slope * (i - meanT)), Vector3.up);
+                var drift = meanH + slope * (i - meanT);
+                var sway = Mathf.DeltaAngle(drift, headings[i]);
+                var trend = Quaternion.AngleAxis(-(drift + sway * (1f - Mathf.Clamp01(keepHeading))), Vector3.up);
                 var pivot = positions[i]["Hips"];
                 foreach (var key in new List<string>(positions[i].Keys))
                     positions[i][key] = pivot + trend * (positions[i][key] - pivot);
