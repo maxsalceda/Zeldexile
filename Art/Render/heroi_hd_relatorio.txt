@@ -1,0 +1,5 @@
+Herói HD (NPR) — contagem de triângulos
+  malha base (antes dos modificadores): 20,882
+  avaliada (subdivisão + espessura + contorno): 425,432
+  dos quais o contorno (inverted hull): 198,512  ->  sem contorno: 226,920
+  objetos de malha: 150

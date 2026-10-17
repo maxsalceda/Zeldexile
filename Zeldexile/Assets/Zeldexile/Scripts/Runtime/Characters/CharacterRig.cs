@@ -65,7 +65,9 @@ namespace Zeldexile.Characters
             Boots = new Color(0.50f, 0.32f, 0.20f),
             Accent = new Color(0.80f, 0.62f, 0.28f),
             Scale = 1f,
-            Model = "heroi"
+            // heroi_npr: the low-poly export of the NPR hero (Tools/Blender/build_hero_game.py); "heroi" is the
+            // previous build_models.py hero.
+            Model = "heroi_npr"
         };
 
         /// <summary>A creature style tinted by its tier: red, blue, black or silver.</summary>
